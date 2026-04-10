@@ -89,25 +89,21 @@ export function useUsers() {
     if (profileError) throw profileError
 
     if (formData.teamIds && formData.teamIds.length > 0) {
-      await supabase
-        .from('users_teams')
-        .insert(
-          formData.teamIds.map((teamId) => ({
-            user_id: authUserId,
-            team_id: teamId,
-          }))
-        )
+      await supabase.from('users_teams').insert(
+        formData.teamIds.map((teamId) => ({
+          user_id: authUserId,
+          team_id: teamId,
+        }))
+      )
     }
 
     if (formData.roleIds && formData.roleIds.length > 0) {
-      await supabase
-        .from('users_roles')
-        .insert(
-          formData.roleIds.map((roleId) => ({
-            user_id: authUserId,
-            role_id: roleId,
-          }))
-        )
+      await supabase.from('users_roles').insert(
+        formData.roleIds.map((roleId) => ({
+          user_id: authUserId,
+          role_id: roleId,
+        }))
+      )
     }
 
     // addUser always refetches — needs authoritative server data

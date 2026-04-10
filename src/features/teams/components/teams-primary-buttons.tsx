@@ -6,9 +6,9 @@ export function TeamsPrimaryButtons() {
   const { onCreateOpen } = useTeamDialog()
 
   return (
-    <div className="flex gap-2">
-      <Button onClick={() => onCreateOpen(true)} size="sm">
-        <Plus className="mr-2 h-4 w-4" />
+    <div className='flex gap-2'>
+      <Button onClick={() => onCreateOpen(true)} size='sm'>
+        <Plus className='mr-2 h-4 w-4' />
         Add Team
       </Button>
     </div>

@@ -101,7 +101,7 @@ export function AddMemberDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-1 flex-col space-y-4 py-2 mx-4'
+            className='mx-4 flex flex-1 flex-col space-y-4 py-2'
           >
             <FormField
               control={form.control}
