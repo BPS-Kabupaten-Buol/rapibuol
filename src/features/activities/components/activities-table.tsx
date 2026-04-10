@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import {
@@ -15,7 +23,8 @@ import {
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
-import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -27,18 +36,40 @@ import {
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
-import { statuses } from '../data/data'
-import { type Task } from '../data/schema'
+import { type Activity } from '../data/schema'
+import { activitiesColumns } from './activities-columns'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-import { tasksColumns } from './tasks-columns'
 
-const route = getRouteApi('/_authenticated/tasks/')
+const route = getRouteApi('/_authenticated/activities/')
 
 type DataTableProps = {
-  data: Task[]
+  data: Activity[]
 }
 
-export function TasksTable({ data }: DataTableProps) {
+type DateFilter = 'today' | 'week' | 'month'
+
+const DATE_FILTER_LABELS: Record<DateFilter, string> = {
+  today: 'Hari Ini',
+  week: 'Minggu Ini',
+  month: 'Bulan Ini',
+}
+
+function getDateRange(filter: DateFilter): { start: Date; end: Date } {
+  const now = new Date()
+  switch (filter) {
+    case 'today':
+      return { start: startOfDay(now), end: endOfDay(now) }
+    case 'week':
+      return {
+        start: startOfWeek(now, { weekStartsOn: 1 }),
+        end: endOfWeek(now, { weekStartsOn: 1 }),
+      }
+    case 'month':
+      return { start: startOfMonth(now), end: endOfMonth(now) }
+  }
+}
+
+export function ActivitiesTable({ data }: DataTableProps) {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: getTeams,
@@ -49,20 +80,40 @@ export function TasksTable({ data }: DataTableProps) {
     queryFn: getUnits,
   })
 
-  // Date range filter state
+  // Date preset filter state - default: today
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today')
+
+  // Manual date range state (overrides preset when filled)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
-  // Filter data by date range
+  const handleFilterChange = useCallback((filter: DateFilter) => {
+    setDateFilter(filter)
+    setStartDate('')
+    setEndDate('')
+  }, [])
+
+  // Filter data: manual range takes priority over preset
   const filteredData = useMemo(() => {
-    if (!startDate && !endDate) return data
+    if (startDate || endDate) {
+      return data.filter((task) => {
+        const taskDate = new Date(task.date)
+        if (startDate && !endDate)
+          return taskDate >= startOfDay(new Date(startDate))
+        if (!startDate && endDate)
+          return taskDate <= endOfDay(new Date(endDate))
+        return (
+          taskDate >= startOfDay(new Date(startDate)) &&
+          taskDate <= endOfDay(new Date(endDate))
+        )
+      })
+    }
+    const { start, end } = getDateRange(dateFilter)
     return data.filter((task) => {
       const taskDate = new Date(task.date)
-      if (startDate && !endDate) return taskDate >= new Date(startDate)
-      if (!startDate && endDate) return taskDate <= new Date(endDate)
-      return taskDate >= new Date(startDate) && taskDate <= new Date(endDate)
+      return taskDate >= start && taskDate <= end
     })
-  }, [data, startDate, endDate])
+  }, [data, dateFilter, startDate, endDate])
 
   // Local UI-only states
   const [rowSelection, setRowSelection] = useState({})
@@ -97,7 +148,7 @@ export function TasksTable({ data }: DataTableProps) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
-    columns: tasksColumns(teams, units),
+    columns: activitiesColumns(teams, units),
     state: {
       sorting,
       columnVisibility,
@@ -152,7 +203,7 @@ export function TasksTable({ data }: DataTableProps) {
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter by description...'
+        searchPlaceholder='Cari deskripsi...'
         filters={
           [
             // {
@@ -163,22 +214,62 @@ export function TasksTable({ data }: DataTableProps) {
           ]
         }
         dateRangeSlot={
-          <div className='flex items-center gap-2'>
-            <Input
-              type='date'
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className='h-8 w-[140px]'
-              placeholder='Tanggal mulai'
-            />
-            <span className='text-muted-foreground'>-</span>
-            <Input
-              type='date'
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className='h-8 w-[140px]'
-              placeholder='Tanggal selesai'
-            />
+          <div className='flex flex-wrap items-center gap-2'>
+            <div className='flex items-center gap-1 rounded-lg border p-1'>
+              {(Object.keys(DATE_FILTER_LABELS) as DateFilter[]).map(
+                (filter) => (
+                  <Button
+                    key={filter}
+                    variant={
+                      dateFilter === filter && !startDate && !endDate
+                        ? 'default'
+                        : 'ghost'
+                    }
+                    size='sm'
+                    className='h-7 px-3 text-xs'
+                    onClick={() => handleFilterChange(filter)}
+                  >
+                    {DATE_FILTER_LABELS[filter]}
+                    {dateFilter === filter && !startDate && !endDate && (
+                      <Badge
+                        variant='secondary'
+                        className='ml-1.5 h-4 px-1 text-[10px]'
+                      >
+                        {filteredData.length}
+                      </Badge>
+                    )}
+                  </Button>
+                )
+              )}
+            </div>
+            <div className='flex items-center gap-2'>
+              <input
+                type='date'
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className='h-8 w-[140px] rounded-md border bg-background px-2 text-sm'
+              />
+              <span className='text-muted-foreground'>—</span>
+              <input
+                type='date'
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className='h-8 w-[140px] rounded-md border bg-background px-2 text-sm'
+              />
+              {(startDate || endDate) && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='h-8 px-2 text-xs text-muted-foreground'
+                  onClick={() => {
+                    setStartDate('')
+                    setEndDate('')
+                  }}
+                >
+                  Atur Ulang
+                </Button>
+              )}
+            </div>
           </div>
         }
       />
@@ -235,10 +326,10 @@ export function TasksTable({ data }: DataTableProps) {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={tasksColumns(teams, units).length}
+                  colSpan={activitiesColumns(teams, units).length}
                   className='h-24 text-center'
                 >
-                  No results.
+                  Tidak ada hasil.
                 </TableCell>
               </TableRow>
             )}

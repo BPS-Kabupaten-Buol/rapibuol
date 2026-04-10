@@ -1,11 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import {
-  type CreateTaskInput,
-  type Task,
-  type UpdateTaskInput,
+  type CreateActivityInput,
+  type Activity,
+  type UpdateActivityInput,
 } from '../data/schema'
 
-export async function getTasks(): Promise<Task[]> {
+export async function getActivities(): Promise<Activity[]> {
   const { data, error } = await supabase
     .from('activities')
     .select('*')
@@ -15,7 +15,9 @@ export async function getTasks(): Promise<Task[]> {
   return data
 }
 
-export async function createTask(input: CreateTaskInput): Promise<Task> {
+export async function createActivity(
+  input: CreateActivityInput
+): Promise<Activity> {
   const { data, error } = await supabase
     .from('activities')
     .insert(input)
@@ -26,10 +28,10 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
   return data
 }
 
-export async function updateTask(
+export async function updateActivity(
   id: number,
-  input: UpdateTaskInput
-): Promise<Task> {
+  input: UpdateActivityInput
+): Promise<Activity> {
   const { data, error } = await supabase
     .from('activities')
     .update({ ...input, updated_at: new Date().toISOString() })
@@ -41,13 +43,13 @@ export async function updateTask(
   return data
 }
 
-export async function deleteTask(id: number): Promise<void> {
+export async function deleteActivity(id: number): Promise<void> {
   const { error } = await supabase.from('activities').delete().eq('id', id)
 
   if (error) throw error
 }
 
-export async function deleteTasks(ids: number[]): Promise<void> {
+export async function deleteActivities(ids: number[]): Promise<void> {
   const { error } = await supabase.from('activities').delete().in('id', ids)
 
   if (error) throw error

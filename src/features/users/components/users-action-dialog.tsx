@@ -26,8 +26,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { MultiSelect } from '@/components/multi-select'
 import { PasswordInput } from '@/components/password-input'
-import { SelectDropdown } from '@/components/select-dropdown'
-import { type User } from '../data/schema'
 import { useTeams, useRoles, useUsers } from '../hooks'
 
 const formSchema = z
@@ -37,7 +35,7 @@ const formSchema = z
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
     teamIds: z.array(z.number()).optional(),
-    roleId: z.string().optional().nullable(),
+    roleIds: z.array(z.number()).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -46,21 +44,19 @@ const formSchema = z
 
 type UserForm = z.infer<typeof formSchema>
 
-type UserActionDialogProps = {
-  currentRow?: User
+type UsersActionDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 export function UsersActionDialog({
-  currentRow: _currentRow,
   open,
   onOpenChange,
-}: UserActionDialogProps) {
+}: UsersActionDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { teams } = useTeams()
-  const { roles, isLoading: isLoadingRoles } = useRoles()
-  const { addUser } = useUsers()
+  const { roles } = useRoles()
+  const { addUser, fetchUsers } = useUsers()
 
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
@@ -70,7 +66,7 @@ export function UsersActionDialog({
       password: '',
       confirmPassword: '',
       teamIds: undefined,
-      roleId: undefined,
+      roleIds: undefined,
     },
   })
 
@@ -83,15 +79,14 @@ export function UsersActionDialog({
         password: values.password,
         confirmPassword: values.confirmPassword,
         teamIds: values.teamIds,
-        roleId:
-          values.roleId !== undefined &&
-          values.roleId !== null &&
-          values.roleId !== ''
-            ? parseInt(values.roleId)
-            : null,
+        roleIds: values.roleIds,
       })
       toast.success('User created successfully')
       form.reset()
+
+      // Refetch users to auto-refresh table
+      await fetchUsers()
+
       onOpenChange(false)
     } catch (error) {
       toast.error(
@@ -173,26 +168,19 @@ export function UsersActionDialog({
               />
               <FormField
                 control={form.control}
-                name='roleId'
+                name='roleIds'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role</FormLabel>
+                    <FormLabel>Roles</FormLabel>
                     <FormControl>
-                      <SelectDropdown
-                        defaultValue={
-                          field.value !== undefined && field.value !== null
-                            ? String(field.value)
-                            : undefined
-                        }
-                        onValueChange={(val) =>
-                          field.onChange(val ? parseInt(val) : undefined)
-                        }
-                        placeholder='Select a role (optional)'
-                        items={roles.map((r) => ({
+                      <MultiSelect
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                        options={roles.map((r) => ({
                           label: r.name,
-                          value: String(r.id),
+                          value: r.id,
                         }))}
-                        isPending={isLoadingRoles}
+                        placeholder='Select roles (optional)'
                       />
                     </FormControl>
                     <FormMessage />

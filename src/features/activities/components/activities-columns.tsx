@@ -1,17 +1,18 @@
 import { format } from 'date-fns'
 import { type ColumnDef } from '@tanstack/react-table'
+import { ClipboardList } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { type Team } from '@/features/teams/api/teams'
 import { type Unit } from '@/features/units/api/units'
 import { statuses } from '../data/data'
-import { type Task } from '../data/schema'
+import { type Activity } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const tasksColumns = (
+export const activitiesColumns = (
   teams: Team[],
   units: Unit[]
-): ColumnDef<Task>[] => [
+): ColumnDef<Activity>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -21,7 +22,7 @@ export const tasksColumns = (
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
+        aria-label='Pilih semua'
         className='translate-y-[2px]'
       />
     ),
@@ -29,7 +30,7 @@ export const tasksColumns = (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
+        aria-label='Pilih baris'
         className='translate-y-[2px]'
       />
     ),
@@ -42,15 +43,24 @@ export const tasksColumns = (
       <DataTableColumnHeader column={column} title='Deskripsi' />
     ),
     meta: {
-      className: 'ps-1 min-w-[200px]',
+      className: 'ps-1 min-w-[350px]',
       tdClassName: 'ps-4',
     },
     cell: ({ row }) => {
       return (
-        <div className='flex space-x-2'>
-          <span className='truncate font-medium'>
-            {row.getValue('description')}
-          </span>
+        <div className='flex items-start gap-3 py-1'>
+          {/* Menggunakan items-start agar icon tetap di atas jika teks panjang */}
+          <div className='mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10'>
+            <ClipboardList className='h-4 w-4 text-primary' />
+          </div>
+
+          {/* Gunakan whitespace-normal agar teks bisa wrap ke bawah */}
+          {/* Atau gunakan line-clamp-2 jika ingin membatasi hanya 2 baris */}
+          <div className='flex flex-col'>
+            <span className='leading-tight font-medium break-words whitespace-normal'>
+              {row.getValue('description')}
+            </span>
+          </div>
         </div>
       )
     },
@@ -142,6 +152,18 @@ export const tasksColumns = (
       const team = teams.find((t) => t.id === row.getValue('assignor'))
       return <div>{team ? team.name : '-'}</div>
     },
+  },
+  {
+    accessorKey: 'link_bukti_dukung',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Bukti Dukung' />
+    ),
+    meta: {
+      className: 'w-[140px]',
+    },
+    cell: ({ row }) => (
+      <div className='text-center'>{row.original.link_bukti_dukung || '-'}</div>
+    ),
   },
   {
     accessorKey: 'is_done',

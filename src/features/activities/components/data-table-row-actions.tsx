@@ -10,8 +10,8 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { taskSchema } from '../data/schema'
-import { useTasks } from './tasks-provider'
+import { activitySchema } from '../data/schema'
+import { useActivities } from './activities-provider'
 
 type DataTableRowActionsProps<TData> = {
   row: Row<TData>
@@ -20,9 +20,9 @@ type DataTableRowActionsProps<TData> = {
 export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
-  const task = taskSchema.parse(row.original)
+  const activity = activitySchema.parse(row.original)
 
-  const { setOpen, setCurrentRow } = useTasks()
+  const { setOpen, setCurrentRow } = useActivities()
 
   return (
     <DropdownMenu modal={false}>
@@ -32,29 +32,29 @@ export function DataTableRowActions<TData>({
           className='flex h-8 w-8 p-0 data-[state=open]:bg-muted'
         >
           <DotsHorizontalIcon className='h-4 w-4' />
-          <span className='sr-only'>Open menu</span>
+          <span className='sr-only'>Buka menu</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='w-[160px]'>
         <DropdownMenuItem
           onClick={() => {
-            setCurrentRow(task)
+            setCurrentRow(activity)
             setOpen('update')
           }}
         >
-          Edit
+          Ubah
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>Make a copy</DropdownMenuItem>
-        <DropdownMenuItem disabled>Favorite</DropdownMenuItem>
-        <DropdownMenuItem disabled>Favorite</DropdownMenuItem>
+        <DropdownMenuItem disabled>Buat salinan</DropdownMenuItem>
+        <DropdownMenuItem disabled>Simpan ke favorit</DropdownMenuItem>
+        <DropdownMenuItem disabled>Simpan ke favorit</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
-            setCurrentRow(task)
+            setCurrentRow(activity)
             setOpen('delete')
           }}
         >
-          Delete
+          Hapus
           <DropdownMenuShortcut>
             <Trash2 size={16} />
           </DropdownMenuShortcut>

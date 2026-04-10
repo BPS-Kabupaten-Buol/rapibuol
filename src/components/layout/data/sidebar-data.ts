@@ -16,6 +16,7 @@ import {
   UserCog,
   UserX,
   Users,
+  Users2,
   MessagesSquare,
   ShieldCheck,
   AudioWaveform,
@@ -40,9 +41,14 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard,
         },
         {
-          title: 'Tasks',
-          url: '/tasks',
+          title: 'Aktivitas',
+          url: '/activities',
           icon: ListTodo,
+        },
+        {
+          title: 'Teams',
+          url: '/teams',
+          icon: Users2,
         },
         {
           title: 'Users',
@@ -58,11 +64,11 @@ export const sidebarData: SidebarData = {
           title: 'Settings',
           icon: Settings,
           items: [
-            {
-              title: 'Profile',
-              url: '/settings',
-              icon: UserCog,
-            },
+            // {
+            //   title: 'Profile',
+            //   url: '/settings',
+            //   icon: UserCog,
+            // },
             {
               title: 'Account',
               url: '/settings/account',

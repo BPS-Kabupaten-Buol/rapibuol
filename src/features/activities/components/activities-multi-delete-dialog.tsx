@@ -9,10 +9,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { deleteTasks } from '../api/tasks'
-import { type Task } from '../data/schema'
+import { deleteActivities } from '../api/activities'
+import { type Activity } from '../data/schema'
 
-type TaskMultiDeleteDialogProps<TData> = {
+type ActivityMultiDeleteDialogProps<TData> = {
   open: boolean
   onOpenChange: (open: boolean) => void
   table: Table<TData>
@@ -20,35 +20,35 @@ type TaskMultiDeleteDialogProps<TData> = {
 
 const CONFIRM_WORD = 'DELETE'
 
-export function TasksMultiDeleteDialog<TData>({
+export function ActivitiesMultiDeleteDialog<TData>({
   open,
   onOpenChange,
   table,
-}: TaskMultiDeleteDialogProps<TData>) {
+}: ActivityMultiDeleteDialogProps<TData>) {
   const [value, setValue] = useState('')
   const queryClient = useQueryClient()
 
   const selectedRows = table.getFilteredSelectedRowModel().rows
-  const selectedIds = selectedRows.map((row) => (row.original as Task).id)
+  const selectedIds = selectedRows.map((row) => (row.original as Activity).id)
 
   const deleteMutation = useMutation({
-    mutationFn: deleteTasks,
+    mutationFn: deleteActivities,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
       toast.success(
-        `Deleted ${selectedIds.length} task${selectedIds.length > 1 ? 's' : ''}`
+        `${selectedIds.length} aktivitas${selectedIds.length > 1 ? '' : ''} berhasil dihapus`
       )
       setValue('')
       table.resetRowSelection()
     },
     onError: () => {
-      toast.error('Failed to delete tasks')
+      toast.error('Gagal menghapus aktivitas')
     },
   })
 
   const handleDelete = () => {
     if (value.trim() !== CONFIRM_WORD) {
-      toast.error(`Please type "${CONFIRM_WORD}" to confirm.`)
+      toast.error(`Silakan ketik "${CONFIRM_WORD}" untuk mengonfirmasi.`)
       return
     }
 
@@ -68,35 +68,37 @@ export function TasksMultiDeleteDialog<TData>({
             className='me-1 inline-block stroke-destructive'
             size={18}
           />{' '}
-          Delete {selectedRows.length}{' '}
-          {selectedRows.length > 1 ? 'tasks' : 'task'}
+          Hapus {selectedRows.length}{' '}
+          {selectedRows.length > 1 ? 'aktivitas' : 'aktivitas'}
         </span>
       }
       desc={
         <div className='space-y-4'>
           <p className='mb-2'>
-            Are you sure you want to delete the selected tasks? <br />
-            This action cannot be undone.
+            Apakah Anda yakin ingin menghapus aktivitas yang dipilih? <br />
+            Tindakan ini tidak dapat dibatalkan.
           </p>
 
           <Label className='my-4 flex flex-col items-start gap-1.5'>
-            <span className=''>Confirm by typing "{CONFIRM_WORD}":</span>
+            <span className=''>
+              Konfirmasi dengan mengetik "{CONFIRM_WORD}":
+            </span>
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={`Type "${CONFIRM_WORD}" to confirm.`}
+              placeholder={`Ketik "${CONFIRM_WORD}" untuk mengonfirmasi.`}
             />
           </Label>
 
           <Alert variant='destructive'>
-            <AlertTitle>Warning!</AlertTitle>
+            <AlertTitle>Peringatan!</AlertTitle>
             <AlertDescription>
-              Please be careful, this operation can not be rolled back.
+              Harap berhati-hati, operasi ini tidak dapat dibatalkan.
             </AlertDescription>
           </Alert>
         </div>
       }
-      confirmText='Delete'
+      confirmText='Hapus'
       destructive
     />
   )

@@ -1,15 +1,22 @@
-import { useState } from 'react'
-import { z } from 'zod'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2 } from 'lucide-react'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -22,141 +29,222 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import type { Team } from '../data/schema'
-import { useTeams } from '../hooks'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { useUsers } from '@/features/users/hooks'
+import {
+  createTeamSchema,
+  updateTeamSchema,
+  type CreateTeamForm,
+  type UpdateTeamForm,
+} from '../data/schema'
+import { useTeamDialog } from './teams-provider'
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Team name is required'),
-  leader: z.string().optional().nullable(),
-})
+export function TeamsActionDialog() {
+  const {
+    isCreateOpen,
+    isEditOpen,
+    onCreateOpen,
+    onEditDialogOpen,
+    selectedTeam,
+  } = useTeamDialog()
+  const { createTeam, updateTeam } = useTeamDialog()
+  const { users } = useUsers()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [leaderPopoverOpen, setLeaderPopoverOpen] = useState(false)
 
-type TeamForm = z.infer<typeof formSchema>
+  const isEditMode = isEditOpen && selectedTeam
 
-interface TeamActionDialogProps {
-  team?: Team
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function TeamsActionDialog({
-  team,
-  open,
-  onOpenChange,
-}: TeamActionDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const { teams } = useTeams()
-  const form = useForm<TeamForm>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<CreateTeamForm | UpdateTeamForm>({
+    resolver: zodResolver(isEditMode ? updateTeamSchema : createTeamSchema),
     defaultValues: {
-      name: team?.name ?? '',
-      leader: team?.leader ?? undefined,
+      name: '',
+      leader: '',
     },
   })
 
-  const onSubmit = async (values: TeamForm) => {
-    setIsLoading(true)
+  useEffect(() => {
+    if (isEditMode && selectedTeam) {
+      form.reset({
+        name: selectedTeam.name,
+        leader: selectedTeam.leader,
+      })
+    } else if (isCreateOpen) {
+      form.reset({
+        name: '',
+        leader: '',
+      })
+    }
+  }, [isEditMode, isCreateOpen, selectedTeam, form])
+
+  const onSubmit = async (data: CreateTeamForm | UpdateTeamForm) => {
+    setIsSubmitting(true)
     try {
-      if (team) {
-        // Update existing team
-        // Implementation would go here
-        toast.success('Team updated successfully')
+      if (isEditMode && selectedTeam) {
+        await updateTeam(selectedTeam.id, data as UpdateTeamForm)
+        toast.success('Team updated successfully!')
+        onEditDialogOpen(false)
       } else {
-        // Create new team
-        // Implementation would go here
-        toast.success('Team created successfully')
+        await createTeam(data as CreateTeamForm)
+        toast.success('Team created successfully!')
+        onCreateOpen(false)
       }
       form.reset()
-      onOpenChange(false)
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : 'Failed to save team'
       )
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
+    }
+  }
+
+  const isOpen = isCreateOpen || isEditOpen
+  const onOpenChange = (open: boolean) => {
+    if (!open) setLeaderPopoverOpen(false)
+    if (isEditMode) {
+      onEditDialogOpen(open)
+    } else {
+      onCreateOpen(open)
     }
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(state) => {
-        form.reset()
-        onOpenChange(state)
-      }}
-    >
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-md'>
-        <DialogHeader className='text-start'>
-          <DialogTitle>{team ? 'Edit Team' : 'Add New Team'}</DialogTitle>
+        <DialogHeader>
+          <DialogTitle>
+            {isEditMode ? 'Edit Team' : 'Create New Team'}
+          </DialogTitle>
           <DialogDescription>
-            {team ? 'Update the team here.' : 'Create new team here.'}
-            Click save when you&apos;re done.
+            {isEditMode
+              ? 'Update the team information below.'
+              : 'Add a new team to your workspace.'}
           </DialogDescription>
         </DialogHeader>
-        <div className='space-y-4'>
-          <Form {...form}>
-            <form
-              id='team-form'
-              onSubmit={form.handleSubmit(onSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={form.control}
-                name='name'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder='Enter team name' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='leader'
-                render={({ field }) => (
-                  <FormItem>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Team Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder='e.g., Engineering Team' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='leader'
+              render={({ field }) => {
+                const selectedUser = users.find((u) => u.id === field.value)
+                return (
+                  <FormItem className='flex flex-col'>
                     <FormLabel>Team Leader</FormLabel>
-                    <FormControl>
-                      <Select
-                        defaultValue={field.value}
-                        onValueChange={field.onChange}
+                    <Popover
+                      open={leaderPopoverOpen}
+                      onOpenChange={setLeaderPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant='outline'
+                            role='combobox'
+                            className={cn(
+                              'w-full justify-between',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            <span className='truncate'>
+                              {selectedUser
+                                ? selectedUser.name
+                                : 'Select a team leader'}
+                            </span>
+                            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className='w-[var(--radix-popover-trigger-width)] p-0'
+                        align='start'
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder='Select a leader' />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teams
-                            .filter((t) => t.leader) // Only show teams with leaders as potential leaders
-                            .map((t) => (
-                              <SelectItem key={t.id} value={t.leader}>
-                                {t.name} (Leader)
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                        <Command>
+                          <CommandInput
+                            placeholder='Search users...'
+                            className='h-9'
+                          />
+                          <CommandList>
+                            <CommandEmpty>No users found.</CommandEmpty>
+                            <CommandGroup>
+                              {users.map((user) => (
+                                <CommandItem
+                                  key={user.id}
+                                  value={`${user.name} ${user.email}`}
+                                  onSelect={() => {
+                                    field.onChange(user.id)
+                                    setLeaderPopoverOpen(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4 shrink-0',
+                                      field.value === user.id
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                  <div className='flex flex-col'>
+                                    <span className='font-medium'>
+                                      {user.name}
+                                    </span>
+                                    <span className='text-xs text-muted-foreground'>
+                                      {user.email}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </div>
-        <DialogFooter>
-          <Button type='submit' form='team-form' disabled={isLoading}>
-            {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            {team ? 'Update Team' : 'Create Team'}
-          </Button>
-        </DialogFooter>
+                )
+              }}
+            />
+
+            <div className='flex gap-2 pt-2'>
+              <Button
+                type='button'
+                variant='outline'
+                className='flex-1'
+                disabled={isSubmitting}
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type='submit' className='flex-1' disabled={isSubmitting}>
+                {isSubmitting
+                  ? isEditMode
+                    ? 'Updating...'
+                    : 'Creating...'
+                  : isEditMode
+                    ? 'Update Team'
+                    : 'Create Team'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

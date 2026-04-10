@@ -26,23 +26,23 @@ const formSchema = z.object({
   file: z
     .instanceof(FileList)
     .refine((files) => files.length > 0, {
-      message: 'Please upload a file',
+      message: 'Silakan upload file',
     })
     .refine(
       (files) => ['text/csv'].includes(files?.[0]?.type),
-      'Please upload csv format.'
+      'Silakan upload format csv.'
     ),
 })
 
-type TaskImportDialogProps = {
+type ActivityImportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function TasksImportDialog({
+export function ActivitiesImportDialog({
   open,
   onOpenChange,
-}: TaskImportDialogProps) {
+}: ActivityImportDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { file: undefined },
@@ -59,7 +59,7 @@ export function TasksImportDialog({
         size: file[0].size,
         type: file[0].type,
       }
-      showSubmittedData(fileDetails, 'You have imported the following file:')
+      showSubmittedData(fileDetails, 'Anda telah mengimpor file berikut:')
     }
     onOpenChange(false)
   }
@@ -74,13 +74,16 @@ export function TasksImportDialog({
     >
       <DialogContent className='gap-2 sm:max-w-sm'>
         <DialogHeader className='text-start'>
-          <DialogTitle>Import Tasks</DialogTitle>
+          <DialogTitle>Impor Aktivitas</DialogTitle>
           <DialogDescription>
-            Import tasks quickly from a CSV file.
+            Impor aktivitas dengan cepat dari file CSV.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form id='task-import-form' onSubmit={form.handleSubmit(onSubmit)}>
+          <form
+            id='activity-import-form'
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <FormField
               control={form.control}
               name='file'
@@ -98,10 +101,10 @@ export function TasksImportDialog({
         </Form>
         <DialogFooter className='gap-2'>
           <DialogClose asChild>
-            <Button variant='outline'>Close</Button>
+            <Button variant='outline'>Tutup</Button>
           </DialogClose>
-          <Button type='submit' form='task-import-form'>
-            Import
+          <Button type='submit' form='activity-import-form'>
+            Impor
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -25,7 +25,7 @@ export function AppTitle() {
               onClick={() => setOpenMobile(false)}
               className='flex-1'
             >
-              <div className='flex gap-2'>
+              <div className='flex gap-2 items-center'>
                 <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
                   <FolderKanban className='size-4' />
                 </div>

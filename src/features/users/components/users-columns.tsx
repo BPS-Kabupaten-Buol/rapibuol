@@ -1,12 +1,13 @@
 import { type ColumnDef } from '@tanstack/react-table'
+import { User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
-import { type User } from '../data/schema'
+import { type User as UserType } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const usersColumns: ColumnDef<User>[] = [
+export const usersColumns: ColumnDef<UserType>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -40,7 +41,12 @@ export const usersColumns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title='Name' />
     ),
     cell: ({ row }) => (
-      <div className='w-fit ps-2 text-nowrap'>{row.getValue('name')}</div>
+      <div className='flex items-center gap-2'>
+        <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'>
+          <User className='h-4 w-4 text-primary' />
+        </div>
+        <span className='font-medium text-nowrap'>{row.getValue('name')}</span>
+      </div>
     ),
     meta: { className: 'w-36' },
   },
@@ -77,14 +83,23 @@ export const usersColumns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'role',
+    accessorKey: 'roles',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Role' />
+      <DataTableColumnHeader column={column} title='Roles' />
     ),
     cell: ({ row }) => {
-      const role = row.getValue('role') as User['role']
+      const roles = row.original.roles
+      if (!roles || roles.length === 0) {
+        return <span className='text-muted-foreground'>-</span>
+      }
       return (
-        <span className='text-sm capitalize'>{role?.name || 'No role'}</span>
+        <div className='flex flex-wrap gap-1'>
+          {roles.map((role) => (
+            <Badge key={role.id} variant='secondary' className='capitalize'>
+              {role.name}
+            </Badge>
+          ))}
+        </div>
       )
     },
     enableSorting: false,

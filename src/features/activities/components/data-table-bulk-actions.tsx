@@ -17,8 +17,8 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
 import { statuses } from '../data/data'
-import { type Task } from '../data/schema'
-import { TasksMultiDeleteDialog } from './tasks-multi-delete-dialog'
+import { type Activity } from '../data/schema'
+import { ActivitiesMultiDeleteDialog } from './activities-multi-delete-dialog'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
@@ -31,12 +31,14 @@ export function DataTableBulkActions<TData>({
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
   const handleBulkStatusChange = (status: boolean) => {
-    const selectedTasks = selectedRows.map((row) => row.original as Task)
+    const selectedActivities = selectedRows.map(
+      (row) => row.original as Activity
+    )
     toast.promise(sleep(2000), {
-      loading: 'Updating status...',
+      loading: 'Memperbarui status...',
       success: () => {
         table.resetRowSelection()
-        return `Status updated to "${status ? 'Done' : 'In Progress'}" for ${selectedTasks.length} task${selectedTasks.length > 1 ? 's' : ''}.`
+        return `Status berhasil diperbarui menjadi "${status ? 'Selesai' : 'Belum Selesai'}" untuk ${selectedActivities.length} aktivitas.`
       },
       error: 'Error',
     })
@@ -44,12 +46,14 @@ export function DataTableBulkActions<TData>({
   }
 
   const handleBulkExport = () => {
-    const selectedTasks = selectedRows.map((row) => row.original as Task)
+    const selectedActivities = selectedRows.map(
+      (row) => row.original as Activity
+    )
     toast.promise(sleep(2000), {
-      loading: 'Exporting tasks...',
+      loading: 'Mengekspor aktivitas...',
       success: () => {
         table.resetRowSelection()
-        return `Exported ${selectedTasks.length} task${selectedTasks.length > 1 ? 's' : ''} to CSV.`
+        return `${selectedActivities.length} aktivitas berhasil diekspor ke CSV.`
       },
       error: 'Error',
     })
@@ -58,7 +62,7 @@ export function DataTableBulkActions<TData>({
 
   return (
     <>
-      <BulkActionsToolbar table={table} entityName='task'>
+      <BulkActionsToolbar table={table} entityName='activity'>
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -67,16 +71,16 @@ export function DataTableBulkActions<TData>({
                   variant='outline'
                   size='icon'
                   className='size-8'
-                  aria-label='Update status'
-                  title='Update status'
+                  aria-label='Perbarui status'
+                  title='Perbarui status'
                 >
                   <CircleArrowUp />
-                  <span className='sr-only'>Update status</span>
+                  <span className='sr-only'>Perbarui status</span>
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Update status</p>
+              <p>Perbarui status</p>
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent sideOffset={14}>
@@ -101,15 +105,15 @@ export function DataTableBulkActions<TData>({
               size='icon'
               onClick={() => handleBulkExport()}
               className='size-8'
-              aria-label='Export tasks'
-              title='Export tasks'
+              aria-label='Ekspor aktivitas'
+              title='Ekspor aktivitas'
             >
               <Download />
-              <span className='sr-only'>Export tasks</span>
+              <span className='sr-only'>Ekspor aktivitas</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Export tasks</p>
+            <p>Ekspor aktivitas</p>
           </TooltipContent>
         </Tooltip>
 
@@ -120,20 +124,20 @@ export function DataTableBulkActions<TData>({
               size='icon'
               onClick={() => setShowDeleteConfirm(true)}
               className='size-8'
-              aria-label='Delete selected tasks'
-              title='Delete selected tasks'
+              aria-label='Hapus aktivitas yang dipilih'
+              title='Hapus aktivitas yang dipilih'
             >
               <Trash2 />
-              <span className='sr-only'>Delete selected tasks</span>
+              <span className='sr-only'>Hapus aktivitas yang dipilih</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Delete selected tasks</p>
+            <p>Hapus aktivitas yang dipilih</p>
           </TooltipContent>
         </Tooltip>
       </BulkActionsToolbar>
 
-      <TasksMultiDeleteDialog
+      <ActivitiesMultiDeleteDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         table={table}

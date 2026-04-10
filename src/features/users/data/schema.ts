@@ -10,12 +10,12 @@ export const _userSchema = z.object({
       name: z.string(),
     })
   ),
-  role: z
-    .object({
+  roles: z.array(
+    z.object({
       id: z.number(),
       name: z.string(),
     })
-    .nullable(),
+  ),
   createdAt: z.coerce.date(),
 })
 export type User = z.infer<typeof _userSchema>
@@ -27,6 +27,13 @@ export const teamSchema = z.object({
   createdAt: z.coerce.date(),
 })
 export type Team = z.infer<typeof teamSchema>
+
+// Schema for editing user roles and teams
+export const editUserRoleSchema = z.object({
+  roleIds: z.array(z.number()).optional(),
+  teamIds: z.array(z.number()).optional(),
+})
+export type EditUserRoleForm = z.infer<typeof editUserRoleSchema>
 
 export const roleSchema = z.object({
   id: z.number(),
@@ -43,7 +50,7 @@ export const addUserSchema = z
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
     teamIds: z.array(z.number()).optional(),
-    roleId: z.number().optional().nullable(),
+    roleIds: z.array(z.number()).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

@@ -1,72 +1,62 @@
-import { Delete, Edit, Plus } from 'lucide-react'
-import { Button, ButtonVariant } from '@/components/ui/button'
-import type { Team } from '../data/schema'
-import { useTeams } from './hooks'
+import { useNavigate } from '@tanstack/react-router'
+import { type Row } from '@tanstack/react-table'
+import { MoreHorizontal, Pencil, Trash2, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import type { TeamWithLeader } from '../data/schema'
+import { useTeamDialog } from './teams-provider'
 
-interface DataTableRowActionsProps<TData> {
-  getToggleAllPageRowsSelected: () => void
-  getIsSomePageRowsSelected: () => boolean
-  getIsAllPageRowsSelected: () => boolean
-  toggleAllPageRowsSelected: (value: boolean) => void
-  prepareUpdateOptimistic: (row: TData, updater: (old: TData) => TData) => void
-  prepareDeleteOptimistic: (row: TData) => void
-  undo: () => void
+interface DataTableRowActionsProps {
+  row: Row<TeamWithLeader>
 }
 
-export function DataTableRowActions<TData extends Team>({
-  getToggleAllPageRowsSelected,
-  getIsSomePageRowsSelected,
-  getIsAllPageRowsSelected,
-  toggleAllPageRowsSelected,
-  prepareUpdateOptimistic,
-  prepareDeleteOptimistic,
-  undo,
-}: DataTableRowActionsProps<TData>) {
-  const { mutateAsync: deleteTeam } = useTeams()
-
-  const handleDelete = async (original: Team) => {
-    await deleteTeam(original.id)
-  }
+export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+  const navigate = useNavigate()
+  const { setSelectedTeam, onEditDialogOpen, onDeleteDialogOpen } =
+    useTeamDialog()
 
   return (
-    <div className='flex items-center gap-2'>
-      <Button
-        variant='outline'
-        size='icon'
-        aria-label='Select all'
-        onClick={() => toggleAllPageRowsSelected(!getIsAllPageRowsSelected())}
-        disabled={!getIsSomePageRowsSelected() && !getIsAllPageRowsSelected()}
-        className='translate-y-[2px]'
-      >
-        {getIsAllPageRowsSelected() ? (
-          <Plus />
-        ) : getIsSomePageRowsSelected() ? (
-          <Edit />
-        ) : (
-          <Plus />
-        )}
-      </Button>
-      <Button
-        variant='outline'
-        size='icon'
-        onClick={() => {
-          prepareUpdateOptimistic({} as Team, () => {
-            return {} as Team
-          })
-        }}
-      >
-        <Edit />
-      </Button>
-      <Button
-        variant='outline'
-        size='icon'
-        onClick={() => {
-          prepareDeleteOptimistic({} as Team)
-          handleDelete({} as Team)
-        }}
-      >
-        <Delete />
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant='ghost' size='sm' className='h-8 w-8 p-0'>
+          <span className='sr-only'>Open menu</span>
+          <MoreHorizontal className='h-4 w-4' />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='end'>
+        <DropdownMenuItem
+          onClick={() => {
+            navigate({ to: `/teams/${row.original.id}` })
+          }}
+        >
+          <Users className='mr-2 h-4 w-4' />
+          View Members
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedTeam(row.original)
+            onEditDialogOpen(true)
+          }}
+        >
+          <Pencil className='mr-2 h-4 w-4' />
+          Edit Team
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedTeam(row.original)
+            onDeleteDialogOpen(true)
+          }}
+          className='text-red-600'
+        >
+          <Trash2 className='mr-2 h-4 w-4' />
+          Delete Team
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

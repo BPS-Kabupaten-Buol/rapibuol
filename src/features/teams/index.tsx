@@ -5,18 +5,18 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { UsersDialogs } from './components/users-dialogs'
-import { UsersPrimaryButtons } from './components/users-primary-buttons'
-import { UsersProvider } from './components/users-provider'
-import { useUsersDialog } from './components/users-provider'
-import { UsersTable } from './components/users-table'
+import { TeamsDialogs } from './components/teams-dialogs'
+import { TeamsPrimaryButtons } from './components/teams-primary-buttons'
+import { TeamsProvider } from './components/teams-provider'
+import { useTeamDialog } from './components/teams-provider'
+import { TeamsTable } from './components/teams-table'
 
-const route = getRouteApi('/_authenticated/users/')
+const route = getRouteApi('/_authenticated/teams/')
 
-function UsersContent() {
+function TeamsContent() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const { users, isLoading, error } = useUsersDialog()
+  const { teams, isLoading, error } = useTeamDialog()
 
   return (
     <>
@@ -32,18 +32,21 @@ function UsersContent() {
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
         <div className='flex flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>Teams</h2>
             <p className='text-muted-foreground'>
-              Manage your users and their roles here.
+              Manage your teams and members here.
             </p>
           </div>
-          <UsersPrimaryButtons />
+          <TeamsPrimaryButtons />
         </div>
         {error ? (
-          <div className='text-red-500'>{error}</div>
+          <div className='rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'>
+            <p className='font-medium'>Error loading teams</p>
+            <p className='text-sm'>{error}</p>
+          </div>
         ) : (
-          <UsersTable
-            data={users}
+          <TeamsTable
+            data={teams}
             search={search}
             navigate={navigate}
             isLoading={isLoading}
@@ -51,15 +54,15 @@ function UsersContent() {
         )}
       </Main>
 
-      <UsersDialogs />
+      <TeamsDialogs />
     </>
   )
 }
 
-export function Users() {
+export function Teams() {
   return (
-    <UsersProvider>
-      <UsersContent />
-    </UsersProvider>
+    <TeamsProvider>
+      <TeamsContent />
+    </TeamsProvider>
   )
 }

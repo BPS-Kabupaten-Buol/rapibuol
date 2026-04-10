@@ -1,35 +1,35 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { deleteTask } from '@/features/tasks/api/tasks'
-import { TasksImportDialog } from './tasks-import-dialog'
-import { TasksMutateDrawer } from './tasks-mutate-drawer'
-import { useTasks } from './tasks-provider'
+import { deleteActivity } from '@/features/activities/api/activities'
+import { ActivitiesImportDialog } from './activities-import-dialog'
+import { ActivitiesMutateDrawer } from './activities-mutate-drawer'
+import { useActivities } from './activities-provider'
 
-export function TasksDialogs() {
-  const { open, setOpen, currentRow, setCurrentRow } = useTasks()
+export function ActivitiesDialogs() {
+  const { open, setOpen, currentRow, setCurrentRow } = useActivities()
   const queryClient = useQueryClient()
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteTask(id),
+    mutationFn: (id: number) => deleteActivity(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      toast.success('Task deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      toast.success('Aktivitas berhasil dihapus')
     },
     onError: () => {
-      toast.error('Failed to delete task')
+      toast.error('Gagal menghapus aktivitas')
     },
   })
 
   return (
     <>
-      <TasksMutateDrawer
-        key='task-create'
+      <ActivitiesMutateDrawer
+        key='activity-create'
         open={open === 'create'}
         onOpenChange={() => setOpen('create')}
       />
 
-      <TasksImportDialog
+      <ActivitiesImportDialog
         key='tasks-import'
         open={open === 'import'}
         onOpenChange={() => setOpen('import')}
@@ -37,8 +37,8 @@ export function TasksDialogs() {
 
       {currentRow && (
         <>
-          <TasksMutateDrawer
-            key={`task-update-${currentRow.id}`}
+          <ActivitiesMutateDrawer
+            key={`activity-update-${currentRow.id}`}
             open={open === 'update'}
             onOpenChange={() => {
               setOpen('update')
@@ -50,7 +50,7 @@ export function TasksDialogs() {
           />
 
           <ConfirmDialog
-            key='task-delete'
+            key='activity-delete'
             destructive
             open={open === 'delete'}
             onOpenChange={() => {
@@ -67,15 +67,16 @@ export function TasksDialogs() {
               }, 500)
             }}
             className='max-w-md'
-            title={`Delete this task: ${currentRow.id} ?`}
+            title={`Hapus aktivitas ini?`}
             desc={
               <>
-                You are about to delete a task with the ID{' '}
-                <strong>{currentRow.id}</strong>. <br />
-                This action cannot be undone.
+                Anda akan menghapus aktivitas{' '}
+                <span className='font-bold'>{currentRow.description}</span>{' '}
+                <br />
+                Tindakan ini tidak dapat dibatalkan.
               </>
             }
-            confirmText='Delete'
+            confirmText='Hapus'
           />
         </>
       )}

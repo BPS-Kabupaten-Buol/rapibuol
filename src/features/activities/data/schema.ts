@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const taskSchema = z.object({
+export const activitySchema = z.object({
   id: z.number(),
   description: z.string(),
   date: z.string(),
@@ -13,11 +13,12 @@ export const taskSchema = z.object({
   created_at: z.string(),
   updated_at: z.string().nullable(),
   user_id: z.string(),
+  link_bukti_dukung: z.string().nullable(),
 })
 
-export type Task = z.infer<typeof taskSchema>
+export type Activity = z.infer<typeof activitySchema>
 
-export type CreateTaskInput = {
+export type CreateActivityInput = {
   description: string
   date: string
   start_time: string | null
@@ -27,6 +28,12 @@ export type CreateTaskInput = {
   assignor: number
   is_done: boolean
   user_id: string
+  link_bukti_dukung: string | null
 }
 
-export type UpdateTaskInput = Partial<CreateTaskInput>
+export type UpdateActivityInput = Partial<CreateActivityInput>
+
+export const taskSchema = activitySchema
+export type Task = Activity
+export type CreateTaskInput = CreateActivityInput
+export type UpdateTaskInput = UpdateActivityInput

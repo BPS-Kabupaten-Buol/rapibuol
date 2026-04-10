@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
@@ -11,7 +12,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
-import type { NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
+import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import {
   Table,
   TableBody,
@@ -21,12 +22,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import type { Team } from '../data/schema'
-import { DataTableBulkActions } from './data-table-bulk-actions'
-import { teamsColumns as columns } from './teams-columns'
+import type { TeamWithLeader } from '../data/schema'
+import { teamsColumns } from './teams-columns'
 
-type DataTableProps = {
-  data: Team[]
+type TeamsTableProps = {
+  data: TeamWithLeader[]
   search: Record<string, unknown>
   navigate: NavigateFn
   isLoading?: boolean
@@ -37,10 +37,10 @@ export function TeamsTable({
   search,
   navigate,
   isLoading,
-}: DataTableProps) {
+}: TeamsTableProps) {
   const [rowSelection, setRowSelection] = useState({})
-  const [columnVisibility, setColumnVisibility] = useState({})
-  const [sorting, setSorting] = useState([])
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const {
     columnFilters,
@@ -56,10 +56,9 @@ export function TeamsTable({
     columnFilters: [],
   })
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
-    columns,
+    columns: teamsColumns,
     state: {
       sorting,
       pagination,
@@ -94,7 +93,7 @@ export function TeamsTable({
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter teams...'
+        searchPlaceholder='Filter teams by name...'
         searchKey='name'
         filters={[]}
       />
@@ -128,10 +127,10 @@ export function TeamsTable({
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={teamsColumns.length}
                   className='h-24 text-center'
                 >
-                  Loading...
+                  Loading teams...
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
@@ -161,7 +160,7 @@ export function TeamsTable({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={teamsColumns.length}
                   className='h-24 text-center'
                 >
                   No teams found.
@@ -172,7 +171,6 @@ export function TeamsTable({
         </Table>
       </div>
       <DataTablePagination table={table} className='mt-auto' />
-      <DataTableBulkActions table={table} />
     </div>
   )
 }

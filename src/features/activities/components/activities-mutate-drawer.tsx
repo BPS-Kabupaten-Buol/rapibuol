@@ -26,37 +26,39 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/date-picker'
 import { SelectDropdown } from '@/components/select-dropdown'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
-import { createTask, updateTask } from '../api/tasks'
-import { type Task } from '../data/schema'
+import { createActivity, updateActivity } from '../api/activities'
+import { type Activity } from '../data/schema'
 
-type TaskMutateDrawerProps = {
+type ActivityMutateDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow?: Task
+  currentRow?: Activity
 }
 
 const formSchema = z.object({
-  description: z.string().min(1, 'Description is required.'),
+  description: z.string().min(1, 'Deskripsi harus diisi.'),
   date: z.date(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
-  volume: z.number().min(0, 'Volume must be minimum 0'),
-  unit: z.number().min(1, 'Please select a unit.'),
-  assignor: z.number().min(1, 'Please select a team.'),
+  volume: z.number().min(0, 'Volume minimal 0'),
+  unit: z.number().min(1, 'Silakan pilih satuan.'),
+  assignor: z.number().min(1, 'Silakan pilih tim.'),
   is_done: z.boolean(),
+  link_bukti_dukung: z.string().optional(),
 })
 
-type TaskForm = z.infer<typeof formSchema>
+type ActivityForm = z.infer<typeof formSchema>
 
-export function TasksMutateDrawer({
+export function ActivitiesMutateDrawer({
   open,
   onOpenChange,
   currentRow,
-}: TaskMutateDrawerProps) {
+}: ActivityMutateDrawerProps) {
   const isUpdate = !!currentRow
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -72,13 +74,13 @@ export function TasksMutateDrawer({
   })
 
   const createMutation = useMutation({
-    mutationFn: createTask,
+    mutationFn: createActivity,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      toast.success('Task created successfully')
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      toast.success('Aktivitas berhasil dibuat')
     },
     onError: () => {
-      toast.error('Failed to create task')
+      toast.error('Gagal membuat aktivitas')
     },
   })
 
@@ -88,18 +90,18 @@ export function TasksMutateDrawer({
       data,
     }: {
       id: number
-      data: Parameters<typeof updateTask>[1]
-    }) => updateTask(id, data),
+      data: Parameters<typeof updateActivity>[1]
+    }) => updateActivity(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      toast.success('Task updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      toast.success('Aktivitas berhasil diperbarui')
     },
     onError: () => {
-      toast.error('Failed to update task')
+      toast.error('Gagal memperbarui aktivitas')
     },
   })
 
-  const form = useForm<TaskForm>({
+  const form = useForm<ActivityForm>({
     resolver: zodResolver(formSchema),
     defaultValues: currentRow
       ? {
@@ -111,6 +113,7 @@ export function TasksMutateDrawer({
           unit: currentRow.unit,
           assignor: currentRow.assignor,
           is_done: currentRow.is_done,
+          link_bukti_dukung: currentRow.link_bukti_dukung ?? '',
         }
       : {
           description: '',
@@ -121,12 +124,13 @@ export function TasksMutateDrawer({
           unit: 0,
           assignor: 0,
           is_done: false,
+          link_bukti_dukung: '',
         },
   })
 
-  const onSubmit = (data: TaskForm) => {
+  const onSubmit = (data: ActivityForm) => {
     if (!user) {
-      toast.error('You must be logged in to create a task')
+      toast.error('Anda harus masuk untuk membuat aktivitas')
       return
     }
 
@@ -138,6 +142,7 @@ export function TasksMutateDrawer({
       volume: data.volume,
       unit: data.unit,
       assignor: data.assignor,
+      link_bukti_dukung: data.link_bukti_dukung || null,
       is_done: data.is_done,
       user_id: user.id,
     }
@@ -162,17 +167,17 @@ export function TasksMutateDrawer({
     >
       <SheetContent className='flex w-full flex-col sm:max-w-md'>
         <SheetHeader className='text-start'>
-          <SheetTitle>{isUpdate ? 'Update' : 'Create'} Task</SheetTitle>
+          <SheetTitle>{isUpdate ? 'Perbarui' : 'Buat'} Aktivitas</SheetTitle>
           <SheetDescription>
             {isUpdate
-              ? 'Update the task by providing necessary info.'
-              : 'Add a new task by providing necessary info.'}
-            Click save when you&apos;re done.
+              ? 'Perbarui aktivitas dengan mengisi informasi yang diperlukan.'
+              : 'Tambahkan aktivitas baru dengan mengisi informasi yang diperlukan.'}
+            Klik simpan jika sudah selesai.
           </SheetDescription>
         </SheetHeader>
         <Form {...form}>
           <form
-            id='tasks-form'
+            id='activities-form'
             onSubmit={form.handleSubmit(onSubmit)}
             className='flex-1 space-y-4 overflow-y-auto px-4 py-2'
           >
@@ -183,9 +188,11 @@ export function TasksMutateDrawer({
                 <FormItem>
                   <FormLabel>Deskripsi</FormLabel>
                   <FormControl>
-                    <Input
+                    {/* Ganti Input menjadi Textarea */}
+                    <Textarea
                       {...field}
-                      placeholder='Enter activity description'
+                      placeholder='Masukkan deskripsi aktivitas'
+                      className='min-h-[100px] resize-none' // resize-none jika ingin ukurannya tetap
                     />
                   </FormControl>
                   <FormMessage />
@@ -275,7 +282,7 @@ export function TasksMutateDrawer({
                         field.value ? String(field.value) : undefined
                       }
                       onValueChange={(val) => field.onChange(Number(val))}
-                      placeholder='Select a unit'
+                      placeholder='Pilih satuan'
                       items={units.map((u) => ({
                         label: u.name,
                         value: String(u.id),
@@ -292,7 +299,7 @@ export function TasksMutateDrawer({
               name='assignor'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assignor / Tim</FormLabel>
+                  <FormLabel>Tim Pemberi Tugas</FormLabel>
                   {isLoadingTeams ? (
                     <div className='flex h-10 items-center justify-center'>
                       <Loader2 className='h-4 w-4 animate-spin' />
@@ -303,13 +310,30 @@ export function TasksMutateDrawer({
                         field.value ? String(field.value) : undefined
                       }
                       onValueChange={(val) => field.onChange(Number(val))}
-                      placeholder='Select a team'
+                      placeholder='Pilih tim'
                       items={teams.map((t) => ({
                         label: t.name,
                         value: String(t.id),
                       }))}
                     />
                   )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='link_bukti_dukung'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link Bukti Dukung (Opsional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder='Masukkan link bukti dukung'
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -336,10 +360,10 @@ export function TasksMutateDrawer({
         </Form>
         <SheetFooter className='gap-2 pt-2'>
           <SheetClose asChild>
-            <Button variant='outline'>Close</Button>
+            <Button variant='outline'>Tutup</Button>
           </SheetClose>
-          <Button form='tasks-form' type='submit'>
-            Save changes
+          <Button form='activities-form' type='submit'>
+            Simpan
           </Button>
         </SheetFooter>
       </SheetContent>

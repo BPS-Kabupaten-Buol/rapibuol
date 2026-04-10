@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker'
 // Set a fixed seed for consistent data generation
 faker.seed(12345)
 
-export const tasks = Array.from({ length: 100 }, () => {
+export const activities = Array.from({ length: 100 }, () => {
   return {
     id: `TASK-${faker.number.int({ min: 1000, max: 9999 })}`,
     description: faker.lorem.sentence({ min: 5, max: 15 }),

@@ -1,0 +1,62 @@
+import { type ColumnDef } from '@tanstack/react-table'
+import { Users } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import type { TeamWithLeader } from '../data/schema'
+import { DataTableRowActions } from './data-table-row-actions'
+
+export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Team Name',
+    cell: ({ row }) => (
+      <div className='flex items-center gap-2'>
+        <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'>
+          <Users className='h-4 w-4 text-primary' />
+        </div>
+        <span className='font-medium'>{row.getValue('name')}</span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'leader_name',
+    header: 'Team Leader',
+    cell: ({ row }) => {
+      const leaderName = row.getValue('leader_name') as string | null
+      const leaderEmail = row.original.leader_email
+      return (
+        <div className='flex flex-col'>
+          <span className='text-sm font-medium'>
+            {leaderName || 'Unassigned'}
+          </span>
+          {leaderEmail && (
+            <span className='text-xs text-muted-foreground'>{leaderEmail}</span>
+          )}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'member_count',
+    header: 'Members',
+    cell: ({ row }) => {
+      const count = row.getValue('member_count') as number
+      return (
+        <Badge variant='outline'>
+          {count} {count === 1 ? 'member' : 'members'}
+        </Badge>
+      )
+    },
+  },
+  // {
+  //   accessorKey: 'created_at',
+  //   header: 'Created',
+  //   cell: ({ row }) => {
+  //     const date = row.getValue('created_at') as Date
+  //     return <span className='text-sm'>{date.toLocaleDateString()}</span>
+  //   },
+  // },
+  {
+    id: 'actions',
+    cell: ({ row }) => <DataTableRowActions row={row} />,
+  },
+]
