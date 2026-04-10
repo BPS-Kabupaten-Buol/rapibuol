@@ -90,7 +90,6 @@ export function TeamDetail() {
         <AddMemberDialog
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          teamId={teamIdNum}
           onAddMember={addMember}
           currentMembers={members}
         />

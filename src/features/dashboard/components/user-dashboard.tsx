@@ -1,11 +1,9 @@
 import { format, startOfMonth, endOfMonth, subYears } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { Activity, Clock, Target, Plus } from 'lucide-react'
+import { Activity, Clock, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,

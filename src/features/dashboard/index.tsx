@@ -103,7 +103,7 @@ function DashboardContent() {
           {isTeamLeader && (
             <TabsContent value='tim' className='space-y-4'>
               {userId ? (
-                <TeamLeaderDashboard userId={userId} teams={teamsLed} />
+                <TeamLeaderDashboard teams={teamsLed} />
               ) : (
                 <p>Loading...</p>
               )}

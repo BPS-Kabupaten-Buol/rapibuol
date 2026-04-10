@@ -65,7 +65,7 @@ export function UsersDeleteDialog({
             <br />
             This action will permanently remove the user with the role of{' '}
             <span className='font-bold'>
-              {currentRow.role?.name?.toUpperCase() || 'N/A'}
+              {currentRow.roles?.[0]?.name?.toUpperCase() || 'N/A'}
             </span>{' '}
             from the system. This cannot be undone.
           </p>

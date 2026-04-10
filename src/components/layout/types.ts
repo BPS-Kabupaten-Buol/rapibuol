@@ -6,11 +6,6 @@ type User = {
   avatar: string
 }
 
-type Team = {
-  name: string
-  logo: React.ElementType
-  plan: string
-}
 
 type BaseNavItem = {
   title: string

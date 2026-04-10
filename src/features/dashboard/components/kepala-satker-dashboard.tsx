@@ -34,7 +34,7 @@ import {
 import { MemberActivityDialog } from './member-activity-dialog'
 
 export default function KepalaSatkerDashboard() {
-  const [period, setPeriod] = useState<'month'>('month')
+  const [period] = useState<'month'>('month')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')

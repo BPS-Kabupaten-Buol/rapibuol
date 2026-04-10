@@ -42,10 +42,8 @@ interface Team {
 }
 
 export default function TeamLeaderDashboard({
-  userId,
   teams,
 }: {
-  userId: string
   teams: Team[]
 }) {
   const [selectedTeam, setSelectedTeam] = useState<string>(
