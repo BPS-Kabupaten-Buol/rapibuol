@@ -75,14 +75,14 @@
 +---------------------------------------------------------------+
 | RAPIBUOL [Logo]         | [User: Nama] [Notifikasi] [Logout]  |
 +---------------------------------------------------------------+
-| [Dashboard] [Log] [Report] [Profile]                          |
+| [Dashboard] [Tasks] [Users] [Settings]                        |
 +-------------------+-------------------------------------------+
 |                   |                                           |
 |   [Sidebar]       |   [Breadcrumb: Home / Dashboard]          |
 |   - Dashboard     |                                           |
-|   - Log Aktivitas |   +-------------------------------+       |
-|   - Report        |   |  Selamat datang, [Nama]!      |       |
-|   - Profile       |   +-------------------------------+       |
+|   - Tasks         |   +-------------------------------+       |
+|   - Users         |   |  Selamat datang, [Nama]!      |       |
+|   - Settings      |   +-------------------------------+       |
 |                   |                                           |
 +-------------------+   [Grafik Heatmap Aktivitas]              |
 |                   |   +-----------------------------------+   |
@@ -104,19 +104,21 @@
 +---------------------------------------------------------------+
 | RAPIBUOL [Logo]         | [User: Nama] [Notifikasi] [Logout]  |
 +---------------------------------------------------------------+
-| [Dashboard] [Log] [Report] [Profile]                          |
+| [Dashboard] [Tasks] [Users] [Settings]                        |
 +-------------------+-------------------------------------------+
-|                   | [Breadcrumb: Home / Log Aktivitas]        |
+|                   | [Breadcrumb: Home / Tasks]                |
 |   [Sidebar]       |                                           |
 |   - Dashboard     |   +-------------------------------+       |
-|   - Log Aktivitas |   |  Form Log Aktivitas            |      |
-|   - Report        |   +-------------------------------+       |
-|   - Profile       |                                           |
-|                   |   [Tanggal: [ 2024-06-01 ▼ ]]             |
-|                   |   [Aktivitas:  ____________________ ]     |
-|                   |   [Deskripsi: _____________________]      |
-|                   |   [Durasi: ___ jam ___ menit]             |
-|                   |   [Tombol: Simpan]                        |
+|   - Tasks         |   |  Form Task/Activity            |      |
+|   - Users         |   +-------------------------------+       |
+|   - Settings      |                                           |
+|                   |   [Tanggal: [ 2024-06-01 ▼ ]]                 |
+|                   |   [Deskripsi: _________________________]      |
+|                   |   [Waktu Mulai: --:-- ▼] [Selesai: --:-- ▼]   |
+|                   |   [Volume: ___] [Satuan: [ Pilih ▼ ]]         |
+|                   |   [Ditugaskan Oleh (Tim): [ Pilih ▼ ]]        |
+|                   |   [X] Selesai (is_done)                       |
+|                   |   [Tombol: Simpan]                            |
 |                   |                                           |
 |                   |   [Daftar Log Hari Ini]                   |
 |                   |   +-------------------------------+       |
@@ -134,14 +136,14 @@
 +---------------------------------------------------------------+
 | RAPIBUOL [Logo]         | [User: Nama] [Notifikasi] [Logout]  |
 +---------------------------------------------------------------+
-| [Dashboard] [Monitoring] [Report] [Profile]                   |
+| [Dashboard] [Tasks] [Users] [Settings]                        |
 +-------------------+-------------------------------------------+
-|                   | [Breadcrumb: Home / Monitoring]           |
+|                   | [Breadcrumb: Home / Users]                |
 |   [Sidebar]       |                                           |
 |   - Dashboard     |   +-------------------------------+       |
-|   - Monitoring    |   |  Monitoring Tim                |      |
-|   - Report        |   +-------------------------------+       |
-|   - Profile       |                                           |
+|   - Tasks         |   |  Monitoring Tim & Users        |      |
+|   - Users         |   +-------------------------------+       |
+|   - Settings      |                                           |
 |                   |   [Filter: [Tim ▼] [Tanggal ▼]]           |
 |                   |                                           |
 |                   |   +-----------------------------------+   |
@@ -192,14 +194,14 @@
 +---------------------------------------------------------------+
 | RAPIBUOL [Logo]         | [User: Nama] [Notifikasi] [Logout]  |
 +---------------------------------------------------------------+
-| [Dashboard] [Log] [Report] [Profile]                          |
+| [Dashboard] [Tasks] [Users] [Settings]                        |
 +-------------------+-------------------------------------------+
-|                   | [Breadcrumb: Home / Profile]              |
+|                   | [Breadcrumb: Home / Settings]             |
 |   [Sidebar]       |                                           |
 |   - Dashboard     |   +-------------------------------+       |
-|   - Log Aktivitas |   |  Profile Pengguna             |       |
-|   - Report        |   +-------------------------------+       |
-|   - Profile       |                                           |
+|   - Tasks         |   |  Settings & Profile           |       |
+|   - Users         |   +-------------------------------+       |
+|   - Settings      |                                           |
 |                   |   [Nama: Andi]                             |
 |                   |   [Email: andi@email.com]                  |
 |                   |   [Role: Employee]                         |
@@ -216,15 +218,15 @@
 +---------------------------------------------------------------+
 | RAPIBUOL [Logo]         | [Admin: Nama] [Notifikasi] [Logout] |
 +---------------------------------------------------------------+
-| [Dashboard] [User] [Team] [Report] [Profile]                  |
+| [Dashboard] [Tasks] [Users] [Settings]                  |
 +-------------------+-------------------------------------------+
-|                   | [Breadcrumb: Home / User Management]      |
+|                   | [Breadcrumb: Home / Users]            |
 |   [Sidebar]       |                                           |
 |   - Dashboard     |   +-------------------------------+       |
-|   - User          |   |  Manajemen User               |       |
-|   - Team          |   +-------------------------------+       |
-|   - Report        |                                           |
-|   - Profile       |   [Tombol: Tambah User]                   |
+|   - Tasks         |   |  Manajemen User & Team        |       |
+|   - Users         |   +-------------------------------+       |
+|   - Settings      |                                           |
+|                   |   [Tombol: Tambah User]                   |
 |                   |                                           |
 |                   |   +-----------------------------------+   |
 |                   |   | Nama | Email | Role | Aksi         |  |

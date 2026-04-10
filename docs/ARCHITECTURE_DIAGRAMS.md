@@ -184,10 +184,13 @@
   │
   └── <AddLogModal>
       ├── <FormGroup>
-      │   ├── <DateInput />
-      │   ├── <TextArea />
-      │   ├── <FileUpload />
-      │   ├── <TagSelector />
+      │   ├── <TextArea description />
+      │   ├── <DateInput date />
+      │   ├── <TimeRangeInput start_time & end_time />
+      │   ├── <NumberInput volume />
+      │   ├── <SelectInput unit (unit_measurement) />
+      │   ├── <SelectInput assignor (teams) />
+      │   ├── <CheckboxInput is_done />
       │   └── <ButtonGroup>
       │       ├── [Cancel]
       │       └── [Save Log]
@@ -315,10 +318,14 @@ Validation Success?
 │    Content-Type: "application/json"                          │
 │  }                                                            │
 │  Body: {                                                     │
-│    date: "2024-01-15",                                       │
-│    description: "Completed task...",                         │
-│    proofLink: "https://...",                                 │
-│    tags: ["dev", "bug-fix"]                                  │
+│    description: "Menyusun laporan bulanan",                  │
+│    date: "2026-04-08",                                       │
+│    start_time: "08:00:00",                                   │
+│    end_time: "10:00:00",                                     │
+│    volume: 1,                                                │
+│    unit: 12,                                                 │
+│    assignor: 3,                                              │
+│    is_done: true                                             │
 │  }                                                            │
 │         ↓                                                     │
 ├──────────────────────────────────────────────────────────────┤
@@ -383,165 +390,57 @@ Validation Success?
 ### Complete Route Tree
 
 ```
-ROOT (/)
+ROOT (/) - via __root.tsx
 │
-├── 🔓 PUBLIC ROUTES
-│   ├── /login
-│   │   └── <LoginForm>
-│   │       ├── Email input
-│   │       ├── Password input
-│   │       └── [Login Button]
-│   │
-│   ├── /register
-│   │   └── <RegisterForm>
-│   │       ├── Name input
-│   │       ├── Email input
-│   │       ├── Password input
-│   │       └── [Register Button]
-│   │
-│   └── /forgot-password
-│       └── <ForgotPasswordForm>
-│           ├── Email input
-│           └── [Send Reset Email]
+├── 🔓 PUBLIC ROUTES (/(auth))
+│   ├── /sign-in
+│   │   └── <SignIn>
+│   ├── /sign-up
+│   │   └── <SignUp>
+│   ├── /sign-in-2
+│   │   └── <SignIn2>
+│   ├── /forgot-password
+│   │   └── <ForgotPassword>
+│   └── /otp
+│       └── <Otp>
 │
-├── 🔐 PROTECTED ROUTES (Requires Authentication)
+├── 🔐 PROTECTED ROUTES (/_authenticated)
 │   │
-│   ├── /dashboard (Role-based redirect)
-│   │   ├─ Employee → /dashboard/employee
-│   │   ├─ Team Lead → /dashboard/team-leader
-│   │   ├─ Dept Head → /dashboard/department-head
-│   │   └─ Admin → /dashboard/admin
-│   │
-│   ├── /dashboard/employee
-│   │   └── <EmployeeDashboard>
+│   ├── / (Dashboard)
+│   │   └── <Dashboard>
+│   │       ├── Role-based content
 │   │       ├── Heatmap
-│   │       ├── Quick stats
-│   │       ├── Progress tracker
-│   │       └── Recent logs
+│   │       └── Quick stats
 │   │
-│   ├── /dashboard/team-leader
-│   │   └── <TeamLeaderDashboard>
-│   │       ├── Team status
-│   │       ├── Member overview
-│   │       ├── Team heatmap
-│   │       └── Performance trends
+│   ├── /tasks
+│   │   └── <Tasks>
+│   │       ├── Activity Logs
+│   │       ├── Task management
+│   │       └── Reports
 │   │
-│   ├── /dashboard/department-head
-│   │   └── <DepartmentHeadDashboard>
-│   │       ├── Department overview
-│   │       ├── Team comparison
-│   │       ├── Analytics
-│   │       └── Department heatmap
-│   │
-│   ├── /dashboard/admin
-│   │   └── <AdminDashboard>
-│   │       ├── System stats
+│   ├── /users
+│   │   └── <Users>
 │   │       ├── User management
 │   │       ├── Team management
-│   │       └── System health
+│   │       └── Search & filter
 │   │
-│   ├── /logs
-│   │   └── <LogsListPage>
-│   │       ├── Filter bar
-│   │       ├── Search
-│   │       ├── Logs list
-│   │       └── Pagination
+│   ├── /help-center
+│   │   └── <HelpCenter>
 │   │
-│   ├── /logs/new
-│   │   └── <CreateLogPage>
-│   │       └── <LogForm> (Create mode)
-│   │
-│   ├── /logs/:id
-│   │   └── <LogDetailPage>
-│   │       ├── Full log content
-│   │       ├── Proof/attachment
-│   │       ├── Edit button
-│   │       └── Delete button
-│   │
-│   ├── /logs/:id/edit
-│   │   └── <EditLogPage>
-│   │       └── <LogForm> (Edit mode)
-│   │
-│   ├── /monitoring/team (TL+)
-│   │   └── <TeamMonitoringPage>
-│   │       ├── Team selector
-│   │       ├── Member status cards
-│   │       ├── Team heatmap
-│   │       └── Filter options
-│   │
-│   ├── /monitoring/team/:teamId (TL+)
-│   │   └── <TeamDetailPage>
-│   │       ├── Team info
-│   │       ├── Member list
-│   │       └── Team analytics
-│   │
-│   ├── /monitoring/members/:memberId (TL+)
-│   │   └── <MemberDetailPage>
-│   │       ├── Member info
-│   │       ├── Individual heatmap
-│   │       ├── Activity history
-│   │       └── Performance metrics
-│   │
-│   ├── /reports (TL+)
-│   │   └── <ReportsPage>
-│   │       ├── Report generator
-│   │       ├── Filters
-│   │       ├── Preview
-│   │       └── Export options
-│   │
-│   ├── /management/users (Admin)
-│   │   └── <UsersPage>
-│   │       ├── User table
-│   │       ├── Add user button
-│   │       ├── Search & filter
-│   │       └── Edit/Delete actions
-│   │
-│   ├── /management/users/:id (Admin)
-│   │   └── <UserDetailPage>
-│   │       ├── User info form
-│   │       ├── Role assignment
-│   │       ├── Team assignment
-│   │       └── Save button
-│   │
-│   ├── /management/teams (Admin)
-│   │   └── <TeamsPage>
-│   │       ├── Team table/grid
-│   │       ├── Create team button
-│   │       ├── Search & filter
-│   │       └── Edit/Delete actions
-│   │
-│   ├── /management/teams/:id (Admin)
-│   │   └── <TeamDetailPage>
-│   │       ├── Team info form
-│   │       ├── Team leader select
-│   │       ├── Member assignment
-│   │       └── Save button
-│   │
-│   ├── /settings
-│   │   └── <SettingsPage>
-│   │       ├── Profile settings
-│   │       ├── Preferences
-│   │       ├── Notifications
-│   │       └── Security
-│   │
-│   └── /profile
-│       └── <ProfilePage>
-│           ├── User info
-│           ├── Statistics
-│           └── Edit profile button
+│   └── /settings
+│       └── <Settings>
+│           ├── /settings/account
+│           ├── /settings/appearance
+│           ├── /settings/display
+│           └── /settings/notifications
 │
-├── ❌ ERROR ROUTES
+├── ❌ ERROR ROUTES (/(errors))
+│   ├── /401
+│   ├── /403
 │   ├── /404
-│   │   └── <NotFoundPage>
-│   │
 │   ├── /500
-│   │   └── <ServerErrorPage>
-│   │
-│   └── /unauthorized
-│       └── <UnauthorizedPage>
-│
-└── * (Catch all)
-    └── Redirect to /404
+│   ├── /503
+│   └── /errors/$error (catch all errors)
 ```
 
 ---
@@ -681,113 +580,40 @@ src/
 ├── features/
 │   ├── auth/
 │   │   ├── components/
-│   │   │   ├── LoginForm.tsx
-│   │   │   ├── RegisterForm.tsx
-│   │   │   └── ForgotPasswordForm.tsx
-│   │   ├── pages/
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── RegisterPage.tsx
-│   │   │   └── ForgotPasswordPage.tsx
-│   │   ├── hooks/
-│   │   │   └── useAuth.ts
-│   │   ├── services/
-│   │   │   └── authService.ts
-│   │   ├── store/
-│   │   │   └── authStore.ts
-│   │   └── types/
-│   │       └── auth.types.ts
+│   │   └── context/
 │   │
 │   ├── dashboard/
-│   │   ├── components/
-│   │   │   ├── ActivityHeatmap.tsx
-│   │   │   ├── QuickStats.tsx
-│   │   │   ├── ProgressTracker.tsx
-│   │   │   └── RecentLogs.tsx
-│   │   ├── pages/
-│   │   │   ├── EmployeeDashboard.tsx
-│   │   │   ├── TeamLeaderDashboard.tsx
-│   │   │   ├── DepartmentHeadDashboard.tsx
-│   │   │   └── AdminDashboard.tsx
-│   │   ├── hooks/
-│   │   │   └── useDashboardStats.ts
-│   │   ├── services/
-│   │   │   └── dashboardService.ts
-│   │   └── types/
-│   │       └── dashboard.types.ts
+│   │   └── components/
+│   │       ├── ActivityHeatmap.tsx
+│   │       ├── QuickStats.tsx
+│   │       └── ...
 │   │
-│   ├── logs/
+│   ├── tasks/
 │   │   ├── components/
-│   │   │   ├── LogForm.tsx
-│   │   │   ├── LogList.tsx
-│   │   │   ├── LogEntry.tsx
-│   │   │   └── LogFilter.tsx
-│   │   ├── pages/
-│   │   │   ├── LogsPage.tsx
-│   │   │   ├── CreateLogPage.tsx
-│   │   │   ├── EditLogPage.tsx
-│   │   │   └── LogDetailPage.tsx
-│   │   ├── hooks/
-│   │   │   ├── useLogs.ts
-│   │   │   └── useLogForm.ts
-│   │   ├── services/
-│   │   │   └── logsService.ts
-│   │   └── types/
-│   │       └── log.types.ts
+│   │   │   ├── data-table.tsx
+│   │   │   ├── task-form.tsx
+│   │   │   └── ...
+│   │   ├── context/
+│   │   └── data/
 │   │
-│   ├── monitoring/
+│   ├── users/
 │   │   ├── components/
-│   │   │   ├── TeamStatus.tsx
-│   │   │   ├── MemberCard.tsx
-│   │   │   ├── TeamAnalytics.tsx
-│   │   │   └── FilterBar.tsx
-│   │   ├── pages/
-│   │   │   ├── TeamMonitoringPage.tsx
-│   │   │   ├── TeamDetailPage.tsx
-│   │   │   ├── MemberDetailPage.tsx
-│   │   │   └── ReportsPage.tsx
-│   │   ├── hooks/
-│   │   │   ├── useTeamMembers.ts
-│   │   │   └── useReports.ts
-│   │   ├── services/
-│   │   │   ├── monitoringService.ts
-│   │   │   └── reportService.ts
-│   │   └── types/
-│   │       └── monitoring.types.ts
+│   │   │   ├── users-table.tsx
+│   │   │   └── ...
+│   │   ├── context/
+│   │   └── data/
 │   │
-│   ├── management/
-│   │   ├── components/
-│   │   │   ├── UserTable.tsx
-│   │   │   ├── UserForm.tsx
-│   │   │   ├── TeamTable.tsx
-│   │   │   └── TeamForm.tsx
-│   │   ├── pages/
-│   │   │   ├── UsersPage.tsx
-│   │   │   ├── UserDetailPage.tsx
-│   │   │   ├── TeamsPage.tsx
-│   │   │   ├── TeamDetailPage.tsx
-│   │   │   └── SettingsPage.tsx
-│   │   ├── hooks/
-│   │   │   ├── useUsers.ts
-│   │   │   ├── useTeams.ts
-│   │   │   └── useManagement.ts
-│   │   ├── services/
-│   │   │   ├── usersService.ts
-│   │   │   └── teamsService.ts
-│   │   └── types/
-│   │       └── management.types.ts
+│   ├── settings/
+│   │   └── components/
+│   │       ├── account-form.tsx
+│   │       ├── appearance-form.tsx
+│   │       └── ...
 │   │
-│   └── common/
-│       ├── components/
-│       │   ├── Layout.tsx
-│       │   ├── Header.tsx
-│       │   ├── Sidebar.tsx
-│       │   ├── Breadcrumb.tsx
-│       │   └── ToastContainer.tsx
-│       ├── hooks/
-│       │   ├── useNavigation.ts
-│       │   └── useNotification.ts
-│       └── types/
-│           └── common.types.ts
+│   └── errors/
+│       └── components/
+│           ├── general-error.tsx
+│           ├── not-found-error.tsx
+│           └── ...
 ```
 
 ---

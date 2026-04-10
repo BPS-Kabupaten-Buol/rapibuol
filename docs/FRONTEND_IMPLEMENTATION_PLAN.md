@@ -27,33 +27,32 @@ Dokumen ini menyajikan comprehensive implementation plan untuk frontend developm
 ## 1. Technical Stack
 
 ### Frontend Framework
-- **Framework:** React 18+ dengan TypeScript
+- **Framework:** React 19 dengan TypeScript
 - **Build Tool:** Vite (untuk development speed)
-- **Styling:** Tailwind CSS + CSS Modules (untuk component-scoped styles)
+- **Styling:** Tailwind CSS v4 (terintegrasi dengan @tailwindcss/vite)
 - **UI Component Library:** shadcn/ui (Headless components dengan Radix UI)
 - **Icons:** Lucide React
 
 ### Visualization & Charts
 - **Calendar Heatmap:** react-calendar-heatmap atau custom implementation dengan Canvas
-- **Charts & Analytics:** Recharts atau Nivo (untuk statistik tim & kepala satker)
-- **Date Handling:** dayjs atau date-fns
+- **Charts & Analytics:** Recharts atau Nivo
+- **Date Handling:** date-fns
 
 ### State Management & Data Fetching
-- **State Management:** TanStack Query (React Query) untuk server state
-- **Global State:** Zustand atau Context API + useReducer untuk client state
-- **Form Management:** React Hook Form + Zod untuk validation
+- **State Management:** TanStack Query (React Query) v5
+- **Global State:** Zustand
+- **Form Management:** React Hook Form + Zod
 
 ### Routing & Navigation
-- **Router:** React Router v6+
-- **Navigation State:** URL-based state management
+- **Router:** TanStack Router (File-based routing)
+- **Navigation State:** URL-based & Search Params melalui TanStack Router
 
 ### Development Tools
 - **Code Quality:** ESLint + Prettier
-- **Testing:** Vitest + React Testing Library
-- **API Client:** Axios atau Fetch API dengan custom hooks
+- **API Client:** Axios
 
 ### Package Manager
-- npm atau pnpm (recommended untuk monorepo di masa depan)
+- npm atau pnpm
 
 ---
 
@@ -64,125 +63,38 @@ Dokumen ini menyajikan comprehensive implementation plan untuk frontend developm
 ```
 rapibuol/
 ├── public/
-│   ├── assets/
-│   │   ├── logos/
-│   │   ├── illustrations/
-│   │   └── icons/
-│   └── favicon.ico
 ├── src/
-│   ├── components/
-│   │   ├── common/              # Shared components
-│   │   │   ├── Header/
-│   │   │   ├── Sidebar/
-│   │   │   ├── Navbar/
-│   │   │   ├── Footer/
-│   │   │   └── Layout/
-│   │   ├── dashboard/           # Dashboard-specific components
-│   │   │   ├── ActivityHeatmap/
-│   │   │   ├── ProgressTracker/
-│   │   │   ├── StatCard/
-│   │   │   └── QuickStats/
-│   │   ├── logs/                # Activity log components
-│   │   │   ├── LogEntry/
-│   │   │   ├── LogForm/
-│   │   │   ├── LogList/
-│   │   │   └── LogDetail/
-│   │   ├── monitoring/          # Monitoring & reporting components
-│   │   │   ├── TeamOverview/
-│   │   │   ├── MemberGrid/
-│   │   │   ├── ReportGenerator/
-│   │   │   └── FilterBar/
-│   │   ├── admin/               # Admin management components
-│   │   │   ├── UserManagement/
-│   │   │   ├── TeamManagement/
-│   │   │   ├── RoleAssignment/
-│   │   │   └── AdminPanel/
-│   │   └── auth/                # Authentication components
-│   │       ├── LoginForm/
-│   │       ├── RegisterForm/
-│   │       └── ProtectedRoute/
-│   ├── pages/
-│   │   ├── auth/
-│   │   │   ├── Login.tsx
-│   │   │   ├── Register.tsx
-│   │   │   └── ForgotPassword.tsx
-│   │   ├── dashboard/
-│   │   │   ├── EmployeeDashboard.tsx
-│   │   │   ├── TeamLeaderDashboard.tsx
-│   │   │   ├── DepartmentHeadDashboard.tsx
-│   │   │   └── AdminDashboard.tsx
-│   │   ├── logs/
-│   │   │   ├── LogsPage.tsx
-│   │   │   ├── LogDetailPage.tsx
-│   │   │   └── CreateLogPage.tsx
-│   │   ├── monitoring/
-│   │   │   ├── TeamMonitoring.tsx
-│   │   │   ├── ReportPage.tsx
-│   │   │   └── ExportPage.tsx
-│   │   ├── management/
-│   │   │   ├── UsersPage.tsx
-│   │   │   ├── TeamsPage.tsx
-│   │   │   └── SettingsPage.tsx
-│   │   ├── NotFound.tsx
-│   │   └── ErrorBoundary.tsx
-│   ├── hooks/
-│   │   ├── useAuth.ts           # Authentication hook
-│   │   ├── useLogs.ts           # Logs CRUD operations
-│   │   ├── useTeams.ts          # Team data operations
-│   │   ├── useUsers.ts          # User management operations
-│   │   ├── useFilters.ts        # Filter state management
-│   │   ├── useExport.ts         # Export functionality
-│   │   └── useNotification.ts   # Toast/notification handler
-│   ├── services/
-│   │   ├── api.ts               # API client configuration
-│   │   ├── authService.ts       # Authentication endpoints
-│   │   ├── logsService.ts       # Logs endpoints
-│   │   ├── teamsService.ts      # Teams endpoints
-│   │   ├── usersService.ts      # Users endpoints
-│   │   ├── reportsService.ts    # Reports endpoints
-│   │   └── exportService.ts     # Export (PDF, Excel) logic
-│   ├── stores/
-│   │   ├── authStore.ts         # Zustand auth store
-│   │   ├── filterStore.ts       # Global filter state
-│   │   ├── notificationStore.ts # Toast notifications
-│   │   └── uiStore.ts           # UI state (sidebar toggle, theme, etc.)
-│   ├── types/
-│   │   ├── index.ts             # Main types export
-│   │   ├── user.ts              # User-related types
-│   │   ├── team.ts              # Team-related types
-│   │   ├── log.ts               # Log-related types
-│   │   ├── filters.ts           # Filter types
-│   │   └── api.ts               # API response types
-│   ├── utils/
-│   │   ├── constants.ts         # App constants & enums
-│   │   ├── formatters.ts        # Date, number, text formatters
-│   │   ├── validators.ts        # Form validators
-│   │   ├── dateHelpers.ts       # Date manipulation utilities
-│   │   ├── heatmapHelpers.ts    # Heatmap data generation
-│   │   └── localStorage.ts      # LocalStorage manager
-│   ├── styles/
-│   │   ├── globals.css          # Global styles
-│   │   ├── tailwind.config.ts   # Tailwind configuration
-│   │   └── variables.css        # CSS variables (colors, spacing, etc.)
-│   ├── config/
-│   │   ├── routes.ts            # Route definitions
-│   │   ├── roles.ts             # Role configurations
-│   │   └── features.ts          # Feature flags
-│   ├── App.tsx                  # Main app component
-│   ├── main.tsx                 # Entry point
-│   └── vite-env.d.ts
-├── tests/
-│   ├── components/
-│   ├── hooks/
-│   ├── pages/
-│   └── utils/
+│   ├── assets/              # Static assets
+│   ├── components/          # Shared components (termasuk shadcn/ui)
+│   ├── config/              # Configuration files
+│   ├── context/             # Global Context providers
+│   ├── features/            # Feature-based architecture
+│   │   ├── auth/            # Authentication feature
+│   │   ├── dashboard/       # Dashboard feature
+│   │   ├── errors/          # Error handling components
+│   │   ├── settings/        # Settings feature
+│   │   ├── tasks/           # Tasks/Logs feature
+│   │   └── users/           # User management feature
+│   ├── hooks/               # Global custom hooks
+│   ├── lib/                 # Utility functions & utils
+│   ├── routes/              # TanStack Router file-based routes
+│   │   ├── (auth)/          # Authentication routes (sign-in, sign-up, dll.)
+│   │   ├── (errors)/        # Error pages routes (404, 500, dll.)
+│   │   ├── _authenticated/  # Protected routes (memerlukan login)
+│   │   │   ├── settings/
+│   │   │   ├── tasks/
+│   │   │   ├── users/
+│   │   │   ├── help-center/
+│   │   │   └── index.tsx    # Dashboard entry point
+│   │   └── __root.tsx       # Root route layout
+│   ├── stores/              # Zustand state stores
+│   ├── styles/              # Global CSS config
+│   ├── main.tsx             # Entry point
+│   └── routeTree.gen.ts     # Auto-generated route tree
 ├── .env.example
-├── .env.local
-├── .gitignore
-├── tailwind.config.ts
-├── tsconfig.json
-├── vite.config.ts
-└── package.json
+├── components.json          # shadcn configuration
+├── package.json
+└── vite.config.ts
 ```
 
 ### 2.2 Component Architecture Pattern
@@ -322,43 +234,32 @@ Core Components to Implement:
 ### 4.1 Navigation Map
 
 ```
-Root (/)
-├── Auth Routes
-│   ├── /login                    [Public]
-│   ├── /register                 [Public]
-│   └── /forgot-password          [Public]
+Root (/) - Melalui __root.tsx
+├── Auth Routes (/(auth))
+│   ├── /sign-in                  [Public]
+│   ├── /sign-up                  [Public]
+│   ├── /sign-in-2                [Public, option alternative]
+│   ├── /forgot-password          [Public]
+│   └── /otp                      [Public]
 │
-├── Dashboard Routes (Protected)
-│   ├── /dashboard                [All Roles - redirects to role-specific]
-│   ├── /dashboard/employee       [Employee, Team Leader, Dept Head, Admin]
-│   ├── /dashboard/team-leader    [Team Leader, Dept Head, Admin]
-│   ├── /dashboard/department-head [Dept Head, Admin]
-│   └── /dashboard/admin          [Admin only]
+├── Protected Routes (/_authenticated)
+│   ├── /                           [Dashboard Utama, Role-based view]
+│   ├── /tasks/                     [Activity Logs & Tasks]
+│   ├── /users/                     [Management Users & Team (Admin/TL+)]
+│   ├── /help-center/               [Help & Support]
+│   └── /settings/                  [Pengaturan Profil & Aplikasi]
+│       ├── /settings/account
+│       ├── /settings/appearance
+│       ├── /settings/display
+│       └── /settings/notifications
 │
-├── Activity Logs Routes
-│   ├── /logs                     [All authenticated]
-│   ├── /logs/new                 [All authenticated]
-│   ├── /logs/:id                 [All authenticated]
-│   ├── /logs/:id/edit            [Own logs only / Team Leader+]
-│   └── /logs/export              [Team Leader, Dept Head, Admin]
-│
-├── Monitoring Routes (Team Leader+)
-│   ├── /monitoring/team          [Team Leader, Dept Head, Admin]
-│   ├── /monitoring/team/:teamId  [Team Leader of that team, Dept Head, Admin]
-│   ├── /monitoring/members/:memberId [Team Leader+]
-│   └── /monitoring/reports       [Team Leader, Dept Head, Admin]
-│
-├── Management Routes (Admin)
-│   ├── /management/users         [Admin only]
-│   ├── /management/users/:id     [Admin only]
-│   ├── /management/teams         [Admin only]
-│   ├── /management/teams/:id     [Admin only]
-│   └── /management/settings      [Admin only]
-│
-└── Utility Routes
+└── Error Routes (/(errors))
+    ├── /401
+    ├── /403
     ├── /404
     ├── /500
-    └── /unauthorized
+    ├── /503
+    └── /errors/$error (catch all errors)
 ```
 
 ### 4.2 Navigation Structure
@@ -507,17 +408,18 @@ Mobile Menu (Hamburger):
 <CreateLogPage>
   ├── <PageHeader title="Add New Log" />
   ├── <LogForm>
-  │   ├── <DateSelector defaultDate="today" />
   │   ├── <TextArea 
   │   │     label="Activity Description"
   │   │     placeholder="Describe your activity..."
   │   │     maxLength={1000}
   │   │   />
-  │   ├── <FileUpload 
-  │   │     label="Proof/Attachment"
-  │   │     accept="link, file"
-  │   │   />
-  │   ├── <TagSelector tags={projects, departments} />
+  │   ├── <DateSelector defaultDate="today" />
+  │   ├── <TimeSelector label="Start Time" />
+  │   ├── <TimeSelector label="End Time" />
+  │   ├── <NumberInput label="Volume" />
+  │   ├── <Select label="Unit (unit_measurement)" />
+  │   ├── <Select label="Assignor (teams)" />
+  │   ├── <Checkbox label="Is Done (Status)" />
   │   └── <ButtonGroup>
   │       ├── <Button type="submit" label="Save" />
   │       └── <Button type="cancel" label="Cancel" />

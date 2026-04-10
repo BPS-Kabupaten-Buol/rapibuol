@@ -1,6 +1,8 @@
-import { Outlet } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { Outlet, useNavigate } from '@tanstack/react-router'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/auth-provider'
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -12,7 +14,29 @@ type AuthenticatedLayoutProps = {
 }
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
+  const { session, isLoading } = useAuth()
+  const navigate = useNavigate()
   const defaultOpen = getCookie('sidebar_state') !== 'false'
+
+  useEffect(() => {
+    if (!isLoading && !session) {
+      const redirect = window.location.href
+      navigate({ to: '/sign-in', search: { redirect }, replace: true })
+    }
+  }, [session, isLoading, navigate])
+
+  if (isLoading) {
+    return (
+      <div className='flex h-svh items-center justify-center'>
+        <div className='h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent' />
+      </div>
+    )
+  }
+
+  if (!session) {
+    return null
+  }
+
   return (
     <SearchProvider>
       <LayoutProvider>
@@ -21,15 +45,8 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
           <AppSidebar />
           <SidebarInset
             className={cn(
-              // Set content container, so we can use container queries
               '@container/content',
-
-              // If layout is fixed, set the height
-              // to 100svh to prevent overflow
               'has-data-[layout=fixed]:h-svh',
-
-              // If layout is fixed and sidebar is inset,
-              // set the height to 100svh - spacing (total margins) to prevent overflow
               'peer-data-[variant=inset]:has-data-[layout=fixed]:h-[calc(100svh-(var(--spacing)*4))]'
             )}
           >

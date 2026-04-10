@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { sleep, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/auth-provider'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -29,27 +30,28 @@ export function ForgotPasswordForm({
 }: React.HTMLAttributes<HTMLFormElement>) {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const { resetPassword } = useAuth()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: '' },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
 
-    toast.promise(sleep(2000), {
-      loading: 'Sending email...',
-      success: () => {
-        setIsLoading(false)
-        form.reset()
-        navigate({ to: '/otp' })
-        return `Email sent to ${data.email}`
-      },
-      error: 'Error',
-    })
+    const { error } = await resetPassword(data.email)
+
+    setIsLoading(false)
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
+    toast.success(`Password reset email sent to ${data.email}`)
+    form.reset()
+    navigate({ to: '/sign-in' })
   }
 
   return (

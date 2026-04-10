@@ -1,30 +1,52 @@
 import { z } from 'zod'
 
-const userStatusSchema = z.union([
-  z.literal('active'),
-  z.literal('inactive'),
-  z.literal('invited'),
-  z.literal('suspended'),
-])
-export type UserStatus = z.infer<typeof userStatusSchema>
-
-const userRoleSchema = z.union([
-  z.literal('superadmin'),
-  z.literal('admin'),
-  z.literal('cashier'),
-  z.literal('manager'),
-])
-
-const _userSchema = z.object({
+export const _userSchema = z.object({
   id: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
-  username: z.string(),
+  name: z.string(),
   email: z.string(),
-  phoneNumber: z.string(),
-  status: userStatusSchema,
-  role: userRoleSchema,
+  teams: z.array(
+    z.object({
+      id: z.number(),
+      name: z.string(),
+    })
+  ),
+  role: z
+    .object({
+      id: z.number(),
+      name: z.string(),
+    })
+    .nullable(),
   createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
 })
 export type User = z.infer<typeof _userSchema>
+
+export const teamSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  leader: z.string().nullable(),
+  createdAt: z.coerce.date(),
+})
+export type Team = z.infer<typeof teamSchema>
+
+export const roleSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  createdAt: z.coerce.date(),
+})
+export type Role = z.infer<typeof roleSchema>
+
+export const addUserSchema = z
+  .object({
+    email: z.string().email('Please enter a valid email'),
+    fullName: z.string().min(1, 'Display name is required'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string(),
+    teamIds: z.array(z.number()).optional(),
+    roleId: z.number().optional().nullable(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+export type AddUserForm = z.infer<typeof addUserSchema>

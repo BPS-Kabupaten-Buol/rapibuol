@@ -1,77 +1,35 @@
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Circle,
-  CheckCircle,
-  AlertCircle,
-  Timer,
-  HelpCircle,
-  CircleOff,
-} from 'lucide-react'
+import { Circle, CheckCircle, Boxes, Users } from 'lucide-react'
 
-export const labels = [
-  {
-    value: 'bug',
-    label: 'Bug',
-  },
-  {
-    value: 'feature',
-    label: 'Feature',
-  },
-  {
-    value: 'documentation',
-    label: 'Documentation',
-  },
+// Mock teams data as assignor (id references table teams)
+export const teams = [
+  { value: 1, label: 'Tim Produksi', icon: Users },
+  { value: 2, label: 'Tim Distribusi', icon: Users },
+  { value: 3, label: 'Tim Neraca', icon: Users },
+  { value: 4, label: 'Tim Sosial', icon: Users },
+  { value: 5, label: 'Tim IPDS', icon: Users },
+  { value: 6, label: 'Tim Umum', icon: Users },
 ]
 
+// Mock unit measurement data (id references table unit_measurement)
+export const units = [
+  { value: 1, label: 'Dokumen', icon: Boxes },
+  { value: 2, label: 'Laporan', icon: Boxes },
+  { value: 3, label: 'Kegiatan', icon: Boxes },
+  { value: 4, label: 'Kunjungan', icon: Boxes },
+  { value: 5, label: 'Jam', icon: Boxes },
+  { value: 6, label: 'Tabel', icon: Boxes },
+]
+
+// Status representation map (is_done)
 export const statuses = [
   {
-    label: 'Backlog',
-    value: 'backlog' as const,
-    icon: HelpCircle,
-  },
-  {
-    label: 'Todo',
-    value: 'todo' as const,
-    icon: Circle,
-  },
-  {
-    label: 'In Progress',
-    value: 'in progress' as const,
-    icon: Timer,
-  },
-  {
-    label: 'Done',
-    value: 'done' as const,
+    value: true,
+    label: 'Selesai',
     icon: CheckCircle,
   },
   {
-    label: 'Canceled',
-    value: 'canceled' as const,
-    icon: CircleOff,
-  },
-]
-
-export const priorities = [
-  {
-    label: 'Low',
-    value: 'low' as const,
-    icon: ArrowDown,
-  },
-  {
-    label: 'Medium',
-    value: 'medium' as const,
-    icon: ArrowRight,
-  },
-  {
-    label: 'High',
-    value: 'high' as const,
-    icon: ArrowUp,
-  },
-  {
-    label: 'Critical',
-    value: 'critical' as const,
-    icon: AlertCircle,
+    value: false,
+    label: 'Belum Selesai',
+    icon: Circle,
   },
 ]

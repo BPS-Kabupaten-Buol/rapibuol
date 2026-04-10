@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Menu, X } from 'lucide-react'
+import { FolderKanban, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   SidebarMenu,
@@ -23,10 +23,17 @@ export function AppTitle() {
             <Link
               to='/'
               onClick={() => setOpenMobile(false)}
-              className='grid flex-1 text-start text-sm leading-tight'
+              className='flex-1'
             >
-              <span className='truncate font-bold'>Shadcn-Admin</span>
-              <span className='truncate text-xs'>Vite + ShadcnUI</span>
+              <div className='flex gap-2'>
+                <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
+                  <FolderKanban className='size-4' />
+                </div>
+                <div className='flex flex-col'>
+                  <span className='truncate font-bold'>RapiBuol</span>
+                  <span className='truncate text-xs'>Rekap Aktivitas</span>
+                </div>
+              </div>
             </Link>
             <ToggleSidebar />
           </div>

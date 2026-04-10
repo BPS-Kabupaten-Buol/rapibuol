@@ -1,12 +1,17 @@
+import { format } from 'date-fns'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
-import { labels, priorities, statuses } from '../data/data'
+import { type Team } from '@/features/teams/api/teams'
+import { type Unit } from '@/features/units/api/units'
+import { statuses } from '../data/data'
 import { type Task } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const tasksColumns: ColumnDef<Task>[] = [
+export const tasksColumns = (
+  teams: Team[],
+  units: Unit[]
+): ColumnDef<Task>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -32,88 +37,134 @@ export const tasksColumns: ColumnDef<Task>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
+    accessorKey: 'description',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Task' />
-    ),
-    cell: ({ row }) => <div className='w-[80px]'>{row.getValue('id')}</div>,
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: 'title',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Title' />
+      <DataTableColumnHeader column={column} title='Deskripsi' />
     ),
     meta: {
-      className: 'ps-1 max-w-0 w-2/3',
+      className: 'ps-1 min-w-[200px]',
       tdClassName: 'ps-4',
     },
     cell: ({ row }) => {
-      const label = labels.find((label) => label.value === row.original.label)
-
       return (
         <div className='flex space-x-2'>
-          {label && <Badge variant='outline'>{label.label}</Badge>}
-          <span className='truncate font-medium'>{row.getValue('title')}</span>
+          <span className='truncate font-medium'>
+            {row.getValue('description')}
+          </span>
         </div>
       )
     },
   },
   {
-    accessorKey: 'status',
+    accessorKey: 'date',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Tanggal' />
+    ),
+    meta: {
+      className: 'w-[140px]',
+    },
+    cell: ({ row }) => {
+      const dateVal = row.getValue('date')
+      return (
+        <div>{dateVal ? format(new Date(dateVal as string), 'PPP') : '-'}</div>
+      )
+    },
+  },
+  {
+    accessorKey: 'volume',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Volume' />
+    ),
+    meta: {
+      className: 'w-[100px] text-center',
+      thClassName: 'text-center',
+    },
+    cell: ({ row }) => (
+      <div className='text-center'>{row.getValue('volume')}</div>
+    ),
+  },
+  {
+    accessorKey: 'unit',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Satuan' />
+    ),
+    meta: {
+      className: 'w-[120px]',
+    },
+    cell: ({ row }) => {
+      const unit = units.find((u) => u.id === row.getValue('unit'))
+      return <div>{unit ? unit.name : '-'}</div>
+    },
+  },
+  {
+    accessorKey: 'start_time',
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title='Jam Mulai'
+        className='w-full justify-center'
+      />
+    ),
+    meta: {
+      className: 'w-[100px] text-center',
+      thClassName: 'text-center',
+    },
+    cell: ({ row }) => (
+      <div className='text-center'>{row.original.start_time || '-'}</div>
+    ),
+  },
+  {
+    accessorKey: 'end_time',
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title='Jam Selesai'
+        className='w-full justify-center'
+      />
+    ),
+    meta: {
+      className: 'w-[100px] text-center',
+      thClassName: 'text-center',
+    },
+    cell: ({ row }) => (
+      <div className='text-center'>{row.original.end_time || '-'}</div>
+    ),
+  },
+  {
+    accessorKey: 'assignor',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Pemberi Tugas' />
+    ),
+    meta: {
+      className: 'w-[140px]',
+    },
+    cell: ({ row }) => {
+      const team = teams.find((t) => t.id === row.getValue('assignor'))
+      return <div>{team ? team.name : '-'}</div>
+    },
+  },
+  {
+    accessorKey: 'is_done',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Status' />
     ),
-    meta: { className: 'ps-1', tdClassName: 'ps-4' },
     cell: ({ row }) => {
       const status = statuses.find(
-        (status) => status.value === row.getValue('status')
+        (status) => status.value === row.getValue('is_done')
       )
 
-      if (!status) {
-        return null
-      }
+      if (!status) return null
 
       return (
-        <div className='flex w-[100px] items-center gap-2'>
+        <div className='flex w-[120px] items-center gap-2'>
           {status.icon && (
-            <status.icon className='size-4 text-muted-foreground' />
+            <status.icon
+              className={`size-4 ${row.getValue('is_done') ? 'text-green-500' : 'text-yellow-500'}`}
+            />
           )}
           <span>{status.label}</span>
         </div>
       )
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
-    },
-  },
-  {
-    accessorKey: 'priority',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Priority' />
-    ),
-    meta: { className: 'ps-1', tdClassName: 'ps-3' },
-    cell: ({ row }) => {
-      const priority = priorities.find(
-        (priority) => priority.value === row.getValue('priority')
-      )
-
-      if (!priority) {
-        return null
-      }
-
-      return (
-        <div className='flex items-center gap-2'>
-          {priority.icon && (
-            <priority.icon className='size-4 text-muted-foreground' />
-          )}
-          <span>{priority.label}</span>
-        </div>
-      )
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
     },
   },
   {

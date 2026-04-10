@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import {
   type SortingState,
@@ -14,6 +15,7 @@ import {
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -23,10 +25,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { priorities, statuses } from '../data/data'
+import { getTeams } from '@/features/teams/api/teams'
+import { getUnits } from '@/features/units/api/units'
+import { statuses } from '../data/data'
 import { type Task } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-import { tasksColumns as columns } from './tasks-columns'
+import { tasksColumns } from './tasks-columns'
 
 const route = getRouteApi('/_authenticated/tasks/')
 
@@ -35,6 +39,31 @@ type DataTableProps = {
 }
 
 export function TasksTable({ data }: DataTableProps) {
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: getTeams,
+  })
+
+  const { data: units = [] } = useQuery({
+    queryKey: ['units'],
+    queryFn: getUnits,
+  })
+
+  // Date range filter state
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+
+  // Filter data by date range
+  const filteredData = useMemo(() => {
+    if (!startDate && !endDate) return data
+    return data.filter((task) => {
+      const taskDate = new Date(task.date)
+      if (startDate && !endDate) return taskDate >= new Date(startDate)
+      if (!startDate && endDate) return taskDate <= new Date(endDate)
+      return taskDate >= new Date(startDate) && taskDate <= new Date(endDate)
+    })
+  }, [data, startDate, endDate])
+
   // Local UI-only states
   const [rowSelection, setRowSelection] = useState({})
   const [sorting, setSorting] = useState<SortingState>([])
@@ -60,15 +89,15 @@ export function TasksTable({ data }: DataTableProps) {
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     globalFilter: { enabled: true, key: 'filter' },
     columnFilters: [
-      { columnId: 'status', searchKey: 'status', type: 'array' },
-      { columnId: 'priority', searchKey: 'priority', type: 'array' },
+      { columnId: 'is_done', searchKey: 'is_done', type: 'array' },
+      { columnId: 'assignor', searchKey: 'assignor', type: 'array' },
     ],
   })
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data,
-    columns,
+    data: filteredData,
+    columns: tasksColumns(teams, units),
     state: {
       sorting,
       columnVisibility,
@@ -82,11 +111,21 @@ export function TasksTable({ data }: DataTableProps) {
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     globalFilterFn: (row, _columnId, filterValue) => {
-      const id = String(row.getValue('id')).toLowerCase()
-      const title = String(row.getValue('title')).toLowerCase()
+      const description = String(row.getValue('description')).toLowerCase()
       const searchValue = String(filterValue).toLowerCase()
 
-      return id.includes(searchValue) || title.includes(searchValue)
+      return description.includes(searchValue)
+    },
+    filterFns: {
+      dateRange: (row, columnId, filterValue) => {
+        const rowDate = new Date(row.getValue(columnId))
+        const [startDate, endDate] = filterValue as [string, string]
+
+        if (!startDate && !endDate) return true
+        if (startDate && !endDate) return rowDate >= new Date(startDate)
+        if (!startDate && endDate) return rowDate <= new Date(endDate)
+        return rowDate >= new Date(startDate) && rowDate <= new Date(endDate)
+      },
     },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -113,19 +152,35 @@ export function TasksTable({ data }: DataTableProps) {
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter by title or ID...'
-        filters={[
-          {
-            columnId: 'status',
-            title: 'Status',
-            options: statuses,
-          },
-          {
-            columnId: 'priority',
-            title: 'Priority',
-            options: priorities,
-          },
-        ]}
+        searchPlaceholder='Filter by description...'
+        filters={
+          [
+            // {
+            //   columnId: 'assignor',
+            //   title: 'Tim',
+            //   options: teams.map((t) => ({ label: t.name, value: String(t.id) })),
+            // },
+          ]
+        }
+        dateRangeSlot={
+          <div className='flex items-center gap-2'>
+            <Input
+              type='date'
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className='h-8 w-[140px]'
+              placeholder='Tanggal mulai'
+            />
+            <span className='text-muted-foreground'>-</span>
+            <Input
+              type='date'
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className='h-8 w-[140px]'
+              placeholder='Tanggal selesai'
+            />
+          </div>
+        }
       />
       <div className='overflow-hidden rounded-md border'>
         <Table className='min-w-xl'>
@@ -180,7 +235,7 @@ export function TasksTable({ data }: DataTableProps) {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={tasksColumns(teams, units).length}
                   className='h-24 text-center'
                 >
                   No results.

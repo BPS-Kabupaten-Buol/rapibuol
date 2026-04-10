@@ -22,7 +22,6 @@ import {
   Command,
   GalleryVerticalEnd,
 } from 'lucide-react'
-import { ClerkLogo } from '@/assets/clerk-logo'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -31,23 +30,6 @@ export const sidebarData: SidebarData = {
     email: 'damar.septianugraha@bps.go.id',
     avatar: '/avatars/shadcn.jpg',
   },
-  teams: [
-    {
-      name: 'Shadcn Admin',
-      logo: Command,
-      plan: 'Vite + ShadcnUI',
-    },
-    {
-      name: 'Acme Inc',
-      logo: GalleryVerticalEnd,
-      plan: 'Enterprise',
-    },
-    {
-      name: 'Acme Corp.',
-      logo: AudioWaveform,
-      plan: 'Startup',
-    },
-  ],
   navGroups: [
     {
       title: 'General',
@@ -91,16 +73,16 @@ export const sidebarData: SidebarData = {
               url: '/settings/appearance',
               icon: Palette,
             },
-            {
-              title: 'Notifications',
-              url: '/settings/notifications',
-              icon: Bell,
-            },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: Monitor,
-            },
+            // {
+            //   title: 'Notifications',
+            //   url: '/settings/notifications',
+            //   icon: Bell,
+            // },
+            // {
+            //   title: 'Display',
+            //   url: '/settings/display',
+            //   icon: Monitor,
+            // },
           ],
         },
         {

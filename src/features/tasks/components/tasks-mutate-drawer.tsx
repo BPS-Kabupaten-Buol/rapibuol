@@ -1,8 +1,13 @@
 import { z } from 'zod'
+import { format } from 'date-fns'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuth } from '@/context/auth-provider'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -12,7 +17,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Sheet,
   SheetClose,
@@ -22,7 +26,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { DatePicker } from '@/components/date-picker'
 import { SelectDropdown } from '@/components/select-dropdown'
+import { getTeams } from '@/features/teams/api/teams'
+import { getUnits } from '@/features/units/api/units'
+import { createTask, updateTask } from '../api/tasks'
 import { type Task } from '../data/schema'
 
 type TaskMutateDrawerProps = {
@@ -32,11 +40,16 @@ type TaskMutateDrawerProps = {
 }
 
 const formSchema = z.object({
-  title: z.string().min(1, 'Title is required.'),
-  status: z.string().min(1, 'Please select a status.'),
-  label: z.string().min(1, 'Please select a label.'),
-  priority: z.string().min(1, 'Please choose a priority.'),
+  description: z.string().min(1, 'Description is required.'),
+  date: z.date(),
+  start_time: z.string().optional(),
+  end_time: z.string().optional(),
+  volume: z.number().min(0, 'Volume must be minimum 0'),
+  unit: z.number().min(1, 'Please select a unit.'),
+  assignor: z.number().min(1, 'Please select a team.'),
+  is_done: z.boolean(),
 })
+
 type TaskForm = z.infer<typeof formSchema>
 
 export function TasksMutateDrawer({
@@ -45,22 +58,98 @@ export function TasksMutateDrawer({
   currentRow,
 }: TaskMutateDrawerProps) {
   const isUpdate = !!currentRow
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
 
-  const form = useForm<TaskForm>({
-    resolver: zodResolver(formSchema),
-    defaultValues: currentRow ?? {
-      title: '',
-      status: '',
-      label: '',
-      priority: '',
+  const { data: teams = [], isLoading: isLoadingTeams } = useQuery({
+    queryKey: ['teams'],
+    queryFn: getTeams,
+  })
+
+  const { data: units = [], isLoading: isLoadingUnits } = useQuery({
+    queryKey: ['units'],
+    queryFn: getUnits,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: createTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast.success('Task created successfully')
+    },
+    onError: () => {
+      toast.error('Failed to create task')
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number
+      data: Parameters<typeof updateTask>[1]
+    }) => updateTask(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast.success('Task updated successfully')
+    },
+    onError: () => {
+      toast.error('Failed to update task')
+    },
+  })
+
+  const form = useForm<TaskForm>({
+    resolver: zodResolver(formSchema),
+    defaultValues: currentRow
+      ? {
+          description: currentRow.description,
+          date: new Date(currentRow.date),
+          start_time: currentRow.start_time ?? '',
+          end_time: currentRow.end_time ?? '',
+          volume: currentRow.volume,
+          unit: currentRow.unit,
+          assignor: currentRow.assignor,
+          is_done: currentRow.is_done,
+        }
+      : {
+          description: '',
+          date: new Date(),
+          start_time: '',
+          end_time: '',
+          volume: 0,
+          unit: 0,
+          assignor: 0,
+          is_done: false,
+        },
+  })
+
   const onSubmit = (data: TaskForm) => {
-    // do something with the form data
+    if (!user) {
+      toast.error('You must be logged in to create a task')
+      return
+    }
+
+    const payload = {
+      description: data.description,
+      date: format(data.date, 'yyyy-MM-dd'),
+      start_time: data.start_time || null,
+      end_time: data.end_time || null,
+      volume: data.volume,
+      unit: data.unit,
+      assignor: data.assignor,
+      is_done: data.is_done,
+      user_id: user.id,
+    }
+
+    if (isUpdate && currentRow) {
+      updateMutation.mutate({ id: currentRow.id, data: payload })
+    } else {
+      createMutation.mutate(payload)
+    }
+
     onOpenChange(false)
     form.reset()
-    showSubmittedData(data)
   }
 
   return (
@@ -71,7 +160,7 @@ export function TasksMutateDrawer({
         form.reset()
       }}
     >
-      <SheetContent className='flex flex-col'>
+      <SheetContent className='flex w-full flex-col sm:max-w-md'>
         <SheetHeader className='text-start'>
           <SheetTitle>{isUpdate ? 'Update' : 'Create'} Task</SheetTitle>
           <SheetDescription>
@@ -85,120 +174,167 @@ export function TasksMutateDrawer({
           <form
             id='tasks-form'
             onSubmit={form.handleSubmit(onSubmit)}
-            className='flex-1 space-y-6 overflow-y-auto px-4'
+            className='flex-1 space-y-4 overflow-y-auto px-4 py-2'
           >
             <FormField
               control={form.control}
-              name='title'
+              name='description'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Deskripsi</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder='Enter a title' />
+                    <Input
+                      {...field}
+                      placeholder='Enter activity description'
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
-              name='status'
+              name='date'
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <SelectDropdown
-                    defaultValue={field.value}
-                    onValueChange={field.onChange}
-                    placeholder='Select dropdown'
-                    items={[
-                      { label: 'In Progress', value: 'in progress' },
-                      { label: 'Backlog', value: 'backlog' },
-                      { label: 'Todo', value: 'todo' },
-                      { label: 'Canceled', value: 'canceled' },
-                      { label: 'Done', value: 'done' },
-                    ]}
+                <FormItem className='flex flex-col'>
+                  <FormLabel>Tanggal</FormLabel>
+                  <DatePicker
+                    selected={field.value}
+                    onSelect={field.onChange}
                   />
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className='flex gap-4'>
+              <FormField
+                control={form.control}
+                name='start_time'
+                render={({ field }) => (
+                  <FormItem className='flex-1'>
+                    <FormLabel>Waktu Mulai</FormLabel>
+                    <FormControl>
+                      <Input type='time' {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='end_time'
+                render={({ field }) => (
+                  <FormItem className='flex-1'>
+                    <FormLabel>Waktu Selesai</FormLabel>
+                    <FormControl>
+                      <Input type='time' {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name='label'
+              name='volume'
               render={({ field }) => (
-                <FormItem className='relative'>
-                  <FormLabel>Label</FormLabel>
+                <FormItem>
+                  <FormLabel>Volume</FormLabel>
                   <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className='flex flex-col space-y-1'
-                    >
-                      <FormItem className='flex items-center'>
-                        <FormControl>
-                          <RadioGroupItem value='documentation' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>
-                          Documentation
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center'>
-                        <FormControl>
-                          <RadioGroupItem value='feature' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Feature</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center'>
-                        <FormControl>
-                          <RadioGroupItem value='bug' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Bug</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
+                    <Input
+                      type='number'
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === '' ? '' : Number(e.target.value)
+                        )
+                      }
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
-              name='priority'
+              name='unit'
               render={({ field }) => (
-                <FormItem className='relative'>
-                  <FormLabel>Priority</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className='flex flex-col space-y-1'
-                    >
-                      <FormItem className='flex items-center'>
-                        <FormControl>
-                          <RadioGroupItem value='high' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>High</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center'>
-                        <FormControl>
-                          <RadioGroupItem value='medium' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Medium</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center'>
-                        <FormControl>
-                          <RadioGroupItem value='low' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Low</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
+                <FormItem>
+                  <FormLabel>Satuan</FormLabel>
+                  {isLoadingUnits ? (
+                    <div className='flex h-10 items-center justify-center'>
+                      <Loader2 className='h-4 w-4 animate-spin' />
+                    </div>
+                  ) : (
+                    <SelectDropdown
+                      defaultValue={
+                        field.value ? String(field.value) : undefined
+                      }
+                      onValueChange={(val) => field.onChange(Number(val))}
+                      placeholder='Select a unit'
+                      items={units.map((u) => ({
+                        label: u.name,
+                        value: String(u.id),
+                      }))}
+                    />
+                  )}
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='assignor'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assignor / Tim</FormLabel>
+                  {isLoadingTeams ? (
+                    <div className='flex h-10 items-center justify-center'>
+                      <Loader2 className='h-4 w-4 animate-spin' />
+                    </div>
+                  ) : (
+                    <SelectDropdown
+                      defaultValue={
+                        field.value ? String(field.value) : undefined
+                      }
+                      onValueChange={(val) => field.onChange(Number(val))}
+                      placeholder='Select a team'
+                      items={teams.map((t) => ({
+                        label: t.name,
+                        value: String(t.id),
+                      }))}
+                    />
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='is_done'
+              render={({ field }) => (
+                <FormItem className='flex flex-row items-center space-y-0 space-x-3 rounded-md border p-4 shadow'>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className='space-y-1 leading-none'>
+                    <FormLabel>Tandai Selesai</FormLabel>
+                  </div>
                 </FormItem>
               )}
             />
           </form>
         </Form>
-        <SheetFooter className='gap-2'>
+        <SheetFooter className='gap-2 pt-2'>
           <SheetClose asChild>
             <Button variant='outline'>Close</Button>
           </SheetClose>
