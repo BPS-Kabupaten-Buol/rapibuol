@@ -85,17 +85,17 @@ export function TeamsActionDialog() {
     try {
       if (isEditMode && selectedTeam) {
         await updateTeam(selectedTeam.id, data as UpdateTeamForm)
-        toast.success('Team updated successfully!')
+        toast.success('Tim berhasil diperbarui!')
         onEditDialogOpen(false)
       } else {
         await createTeam(data as CreateTeamForm)
-        toast.success('Team created successfully!')
+        toast.success('Tim berhasil dibuat!')
         onCreateOpen(false)
       }
       form.reset()
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to save team'
+        error instanceof Error ? error.message : 'Gagal menyimpan tim'
       )
     } finally {
       setIsSubmitting(false)
@@ -117,12 +117,12 @@ export function TeamsActionDialog() {
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? 'Edit Team' : 'Create New Team'}
+            {isEditMode ? 'Ubah Tim' : 'Buat Tim Baru'}
           </DialogTitle>
           <DialogDescription>
             {isEditMode
-              ? 'Update the team information below.'
-              : 'Add a new team to your workspace.'}
+              ? 'Perbarui informasi tim di bawah ini.'
+              : 'Tambah tim baru ke ruang kerja Anda.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -133,9 +133,9 @@ export function TeamsActionDialog() {
               name='name'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Team Name</FormLabel>
+                  <FormLabel>Nama Tim</FormLabel>
                   <FormControl>
-                    <Input placeholder='e.g., Engineering Team' {...field} />
+                    <Input placeholder='misal: Tim Produksi' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,7 +149,7 @@ export function TeamsActionDialog() {
                 const selectedUser = users.find((u) => u.id === field.value)
                 return (
                   <FormItem className='flex flex-col'>
-                    <FormLabel>Team Leader</FormLabel>
+                    <FormLabel>Ketua Tim</FormLabel>
                     <Popover
                       open={leaderPopoverOpen}
                       onOpenChange={setLeaderPopoverOpen}
@@ -167,7 +167,7 @@ export function TeamsActionDialog() {
                             <span className='truncate'>
                               {selectedUser
                                 ? selectedUser.name
-                                : 'Select a team leader'}
+                                : 'Pilih ketua tim'}
                             </span>
                             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
                           </Button>
@@ -179,11 +179,11 @@ export function TeamsActionDialog() {
                       >
                         <Command>
                           <CommandInput
-                            placeholder='Search users...'
+                            placeholder='Cari pengguna...'
                             className='h-9'
                           />
                           <CommandList>
-                            <CommandEmpty>No users found.</CommandEmpty>
+                            <CommandEmpty>Pengguna tidak ditemukan.</CommandEmpty>
                             <CommandGroup>
                               {users.map((user) => (
                                 <CommandItem
@@ -231,16 +231,16 @@ export function TeamsActionDialog() {
                 disabled={isSubmitting}
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                Batal
               </Button>
               <Button type='submit' className='flex-1' disabled={isSubmitting}>
                 {isSubmitting
                   ? isEditMode
-                    ? 'Updating...'
-                    : 'Creating...'
+                    ? 'Memperbarui...'
+                    : 'Membuat...'
                   : isEditMode
-                    ? 'Update Team'
-                    : 'Create Team'}
+                    ? 'Ubah Tim'
+                    : 'Buat Tim'}
               </Button>
             </div>
           </form>

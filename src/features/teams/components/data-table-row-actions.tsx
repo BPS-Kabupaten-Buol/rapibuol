@@ -24,7 +24,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant='ghost' size='sm' className='h-8 w-8 p-0'>
-          <span className='sr-only'>Open menu</span>
+          <span className='sr-only'>Buka menu</span>
           <MoreHorizontal className='h-4 w-4' />
         </Button>
       </DropdownMenuTrigger>
@@ -35,7 +35,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           }}
         >
           <Users className='mr-2 h-4 w-4' />
-          View Members Details
+          Lihat Detail Anggota
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
@@ -44,7 +44,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           }}
         >
           <Users className='mr-2 h-4 w-4' />
-          Manage Members
+          Kelola Anggota
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
@@ -53,7 +53,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           }}
         >
           <Pencil className='mr-2 h-4 w-4' />
-          Edit Team
+          Ubah Tim
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
@@ -63,7 +63,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           className='text-red-600'
         >
           <Trash2 className='mr-2 h-4 w-4' />
-          Delete Team
+          Hapus Tim
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

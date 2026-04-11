@@ -22,12 +22,12 @@ function ActivitiesFAB() {
   const { setOpen } = useActivities()
   return (
     <Button
-      className='fixed bottom-6 right-6 z-50 h-14 gap-2 rounded-full px-5 shadow-lg sm:hidden'
+      className='fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg sm:hidden'
       onClick={() => setOpen('create')}
-      size='lg'
+      size='icon'
+      aria-label='Tambah Aktivitas Baru'
     >
-      <Plus className='h-5 w-5' />
-      Aktivitas Baru
+      <Plus className='h-6 w-6' />
     </Button>
   )
 }

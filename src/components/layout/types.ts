@@ -11,6 +11,8 @@ type BaseNavItem = {
   title: string
   badge?: string
   icon?: React.ElementType
+  /** If set, item is only shown to users with at least one of these role IDs */
+  roles?: number[]
 }
 
 type NavLink = BaseNavItem & {

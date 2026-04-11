@@ -1,17 +1,21 @@
 import { type Table } from '@tanstack/react-table'
-import { Clock, Package, Users, Link2, CheckCheck, Clock3, MoreHorizontal } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Clock, Package, Users, Link2, CheckCheck, Clock3, MoreHorizontal, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import { useActivities } from './activities-provider'
 import { type Activity } from '../data/schema'
 import { type Team } from '@/features/teams/api/teams'
 import { type Unit } from '@/features/units/api/units'
+import { updateActivity } from '../api/activities'
 
 interface ActivitiesCardsProps {
   table: Table<Activity>
@@ -35,8 +39,83 @@ function calcDuration(start: string | null, end: string | null): string | null {
   }
 }
 
-export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
+// ─── Card Actions ────────────────────────────────────────────────────────────
+
+function CardActions({ activity }: { activity: Activity }) {
   const { setOpen, setCurrentRow } = useActivities()
+  const queryClient = useQueryClient()
+  const isMobile = useIsMobile()
+
+  const toggleDone = useMutation({
+    mutationFn: () =>
+      updateActivity(activity.id, { is_done: !activity.is_done }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+    },
+  })
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant='ghost'
+          size='icon'
+          className={cn(
+            'h-8 w-8 shrink-0 rounded-full transition-opacity focus:opacity-100',
+            isMobile
+              ? 'opacity-100'
+              : 'opacity-0 group-hover:opacity-100'
+          )}
+        >
+          <MoreHorizontal className='h-4 w-4 text-muted-foreground' />
+          <span className='sr-only'>Buka menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='end' className='w-48'>
+        <DropdownMenuItem
+          className='cursor-pointer'
+          onClick={() => toggleDone.mutate()}
+          disabled={toggleDone.isPending}
+        >
+          {activity.is_done ? (
+            <>
+              <Circle className='mr-2 h-4 w-4 text-amber-500' />
+              Tandai Pending
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className='mr-2 h-4 w-4 text-emerald-500' />
+              Tandai Selesai
+            </>
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className='cursor-pointer'
+          onClick={() => {
+            setCurrentRow(activity)
+            setOpen('update')
+          }}
+        >
+          <Pencil className='mr-2 h-4 w-4' />
+          Ubah Aktivitas
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className='cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive'
+          onClick={() => {
+            setCurrentRow(activity)
+            setOpen('delete')
+          }}
+        >
+          <Trash2 className='mr-2 h-4 w-4' />
+          Hapus Aktivitas
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
   const rows = table.getRowModel().rows
 
   if (rows.length === 0) {
@@ -140,38 +219,8 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
               </div>
             </div>
 
-            {/* Actions - reveal on hover */}
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-8 w-8 shrink-0 rounded-full opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100'
-                >
-                  <MoreHorizontal className='h-4 w-4 text-muted-foreground' />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end' className='w-44'>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={() => {
-                    setCurrentRow(activity)
-                    setOpen('update')
-                  }}
-                >
-                  Ubah Aktivitas
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='cursor-pointer text-destructive focus:bg-destructive/10'
-                  onClick={() => {
-                    setCurrentRow(activity)
-                    setOpen('delete')
-                  }}
-                >
-                  Hapus Aktivitas
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Actions */}
+            <CardActions activity={activity} />
           </div>
         )
       })}

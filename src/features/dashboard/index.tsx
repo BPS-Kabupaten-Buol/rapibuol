@@ -10,6 +10,7 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useUserRoles } from '@/hooks/use-user-roles'
 import { ActivitiesDialogs } from '@/features/activities/components/activities-dialogs'
 import {
   ActivitiesProvider,
@@ -22,14 +23,26 @@ import UserDashboard from './components/user-dashboard'
 function DashboardFAB() {
   const { setOpen } = useActivities()
   return (
-    <Button
-      className='fixed right-6 bottom-6 z-50 h-14 gap-2 rounded-full px-5 shadow-lg'
-      onClick={() => setOpen('create')}
-      size='lg'
-    >
-      <Plus className='h-5 w-5' />
-      Aktivitas Baru
-    </Button>
+    <>
+      {/* Mobile: icon-only round */}
+      <Button
+        className='fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full shadow-lg sm:hidden'
+        onClick={() => setOpen('create')}
+        size='icon'
+        aria-label='Tambah Aktivitas Baru'
+      >
+        <Plus className='h-6 w-6' />
+      </Button>
+      {/* Desktop: pill with text */}
+      <Button
+        className='fixed right-6 bottom-6 z-50 h-14 gap-2 rounded-full px-5 shadow-lg max-sm:hidden'
+        onClick={() => setOpen('create')}
+        size='lg'
+      >
+        <Plus className='h-5 w-5' />
+        Aktivitas Baru
+      </Button>
+    </>
   )
 }
 
@@ -37,19 +50,8 @@ function DashboardContent() {
   const { session } = useSupabaseAuth()
   const userId = session?.user?.id
 
-  // Fetch Roles
-  const { data: roles } = useQuery({
-    queryKey: ['user-roles', userId],
-    queryFn: async () => {
-      if (!userId) return []
-      const { data } = await supabase
-        .from('users_roles')
-        .select('role_id')
-        .eq('user_id', userId)
-      return data?.map((r) => r.role_id) || []
-    },
-    enabled: !!userId,
-  })
+  // Fetch Roles (shared cache with sidebar via useUserRoles)
+  const { data: roles } = useUserRoles()
 
   // Fetch Teams Led by User
   const { data: teamsLed } = useQuery({

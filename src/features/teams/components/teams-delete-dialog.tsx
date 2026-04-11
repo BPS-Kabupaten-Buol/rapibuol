@@ -22,11 +22,11 @@ export function TeamsDeleteDialog() {
     setIsDeleting(true)
     try {
       await deleteTeam(selectedTeam.id)
-      toast.success('Team deleted successfully!')
+      toast.success('Tim berhasil dihapus!')
       onDeleteDialogOpen(false)
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to delete team'
+        error instanceof Error ? error.message : 'Gagal menghapus tim'
       )
     } finally {
       setIsDeleting(false)
@@ -37,21 +37,21 @@ export function TeamsDeleteDialog() {
     <AlertDialog open={isDeleteOpen} onOpenChange={onDeleteDialogOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Team</AlertDialogTitle>
+          <AlertDialogTitle>Hapus Tim</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the team "{selectedTeam?.name}"?
-            This action cannot be undone. All team members will be removed from
-            this team.
+            Apakah Anda yakin ingin menghapus tim "{selectedTeam?.name}"?
+            Tindakan ini tidak dapat dibatalkan. Semua anggota tim akan dihapus dari
+            tim ini.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className='flex gap-2'>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Batal</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting}
             className='text-destructive-foreground bg-destructive hover:bg-destructive/90'
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? 'Menghapus...' : 'Hapus'}
           </AlertDialogAction>
         </div>
       </AlertDialogContent>

@@ -94,7 +94,7 @@ export function TeamsTable({
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter teams by name...'
+        searchPlaceholder='Cari tim berdasarkan nama...'
         searchKey='name'
         filters={[]}
       />
@@ -165,7 +165,7 @@ export function TeamsTable({
                   colSpan={teamsColumns.length}
                   className='h-24 text-center'
                 >
-                  No teams found.
+                  Tim tidak ditemukan.
                 </TableCell>
               </TableRow>
             )}

@@ -8,7 +8,7 @@ import { useTeamDialog } from './teams-provider'
 export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
   {
     accessorKey: 'name',
-    header: 'Team Name',
+    header: 'Nama Tim',
     cell: ({ row }) => (
       <div className='flex items-center gap-2'>
         <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'>
@@ -20,14 +20,14 @@ export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
   },
   {
     accessorKey: 'leader_name',
-    header: 'Team Leader',
+    header: 'Ketua Tim',
     cell: ({ row }) => {
       const leaderName = row.getValue('leader_name') as string | null
       const leaderEmail = row.original.leader_email
       return (
         <div className='flex flex-col'>
           <span className='text-sm font-medium'>
-            {leaderName || 'Unassigned'}
+            {leaderName || 'Tidak Ada'}
           </span>
           {leaderEmail && (
             <span className='text-xs text-muted-foreground'>{leaderEmail}</span>
@@ -38,7 +38,7 @@ export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
   },
   {
     accessorKey: 'member_count',
-    header: 'Members',
+    header: 'Anggota',
     cell: ({ row }) => {
       const count = row.getValue('member_count') as number
       const { setSelectedTeam, onMembersOpen } = useTeamDialog()
@@ -51,10 +51,9 @@ export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
             onMembersOpen(true)
           }}
           className='flex items-center transition-opacity hover:opacity-70'
-          title='Click to manage members'
         >
           <Badge variant='outline' className='cursor-pointer'>
-            {count} {count === 1 ? 'member' : 'members'}
+            {count} anggota
           </Badge>
         </button>
       )

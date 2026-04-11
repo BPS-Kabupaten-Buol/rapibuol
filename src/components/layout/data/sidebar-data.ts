@@ -31,14 +31,16 @@ export const sidebarData: SidebarData = {
           icon: ListTodo,
         },
         {
-          title: 'Teams',
+          title: 'Tim',
           url: '/teams',
           icon: Users2,
+          roles: [1, 2], // admin & kepala
         },
         {
           title: 'Users',
           url: '/users',
           icon: Users,
+          roles: [1], // admin only
         },
       ],
     },
