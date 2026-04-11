@@ -1,6 +1,21 @@
-import { type Table } from '@tanstack/react-table'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Clock, Package, Users, Link2, CheckCheck, Clock3, MoreHorizontal, Pencil, Trash2, CheckCircle2, Circle } from 'lucide-react'
+import { type Table } from '@tanstack/react-table'
+import {
+  Clock,
+  Package,
+  Users,
+  Link2,
+  CheckCheck,
+  Clock3,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Circle,
+  Calendar,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -9,13 +24,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { cn } from '@/lib/utils'
-import { useActivities } from './activities-provider'
-import { type Activity } from '../data/schema'
 import { type Team } from '@/features/teams/api/teams'
 import { type Unit } from '@/features/units/api/units'
 import { updateActivity } from '../api/activities'
+import { type Activity } from '../data/schema'
+import { useActivities } from './activities-provider'
 
 interface ActivitiesCardsProps {
   table: Table<Activity>
@@ -62,9 +75,7 @@ function CardActions({ activity }: { activity: Activity }) {
           size='icon'
           className={cn(
             'h-8 w-8 shrink-0 rounded-full transition-opacity focus:opacity-100',
-            isMobile
-              ? 'opacity-100'
-              : 'opacity-0 group-hover:opacity-100'
+            isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           )}
         >
           <MoreHorizontal className='h-4 w-4 text-muted-foreground' />
@@ -133,7 +144,8 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
         const isDone = activity.is_done
         const duration = calcDuration(activity.start_time, activity.end_time)
         const unitName = units.find((u) => u.id === activity.unit)?.name ?? ''
-        const teamName = teams.find((t) => t.id === activity.assignor)?.name ?? '-'
+        const teamName =
+          teams.find((t) => t.id === activity.assignor)?.name ?? '-'
 
         return (
           <div
@@ -154,12 +166,25 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
               )}
             />
 
-            <div className='flex flex-1 flex-col gap-2 min-w-0'>
+            <div className='flex min-w-0 flex-1 flex-col gap-2'>
               {/* Time + Duration + Status */}
               <div className='flex flex-wrap items-center gap-2'>
-                <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground'>
+                {/* Date */}
+                <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'>
+                  <Calendar className='h-3 w-3' />
+                  {new Date(activity.date).toLocaleDateString('id-ID', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+
+                {/* Time */}
+                <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums'>
                   <Clock className='h-3 w-3' />
-                  {activity.start_time?.slice(0, 5) ?? '--:--'} – {activity.end_time?.slice(0, 5) ?? '--:--'}
+                  {activity.start_time?.slice(0, 5) ?? '--:--'} –{' '}
+                  {activity.end_time?.slice(0, 5) ?? '--:--'}
                 </span>
 
                 {duration && (
@@ -186,11 +211,7 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
               </div>
 
               {/* Description */}
-              <p
-                className={cn(
-                  'text-[15px] font-semibold leading-snug'
-                )}
-              >
+              <p className={cn('text-[15px] leading-snug font-semibold')}>
                 {activity.description}
               </p>
 

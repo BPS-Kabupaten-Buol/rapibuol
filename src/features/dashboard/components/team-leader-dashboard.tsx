@@ -9,9 +9,9 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { Users, AlertTriangle, Activity } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Card,
   CardContent,
@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -34,19 +36,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
 import { MemberActivityDialog } from './member-activity-dialog'
+import { TeamLeaderCards } from './team-leader-dashboard-cards'
 
 interface Team {
   id: number
   name: string
 }
 
-export default function TeamLeaderDashboard({
-  teams,
-}: {
-  teams: Team[]
-}) {
+export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
   const [selectedTeam, setSelectedTeam] = useState<string>(
     teams.length > 0 ? teams[0].id.toString() : ''
   )
@@ -54,6 +52,7 @@ export default function TeamLeaderDashboard({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')
+  const isMobile = useIsMobile()
 
   const teamId = selectedTeam ? parseInt(selectedTeam) : null
 
@@ -192,7 +191,11 @@ export default function TeamLeaderDashboard({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoading ? <Skeleton className="h-8 w-16" /> : `${completedActivities} / ${activities.length}`}
+              {isLoading ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                `${completedActivities} / ${activities.length}`
+              )}
             </div>
             <p className='text-xs text-muted-foreground'>
               Aktivitas selesai dari total di periode ini
@@ -209,7 +212,11 @@ export default function TeamLeaderDashboard({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoading ? <Skeleton className="h-8 w-16" /> : `${activeMembersToday.size} / ${members.length}`}
+              {isLoading ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                `${activeMembersToday.size} / ${members.length}`
+              )}
             </div>
             <p className='text-xs text-muted-foreground'>
               Anggota yang sudah input hari ini
@@ -234,7 +241,11 @@ export default function TeamLeaderDashboard({
             <div
               className={`text-2xl font-bold ${missingReportMembers.length > 0 ? 'text-red-600 dark:text-red-400' : ''}`}
             >
-              {isLoading ? <Skeleton className="h-8 w-16" /> : missingReportMembers.length}
+              {isLoading ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                missingReportMembers.length
+              )}
             </div>
             <p className='text-xs text-muted-foreground'>
               Orang belum input hari ini
@@ -244,159 +255,182 @@ export default function TeamLeaderDashboard({
       </div>
 
       {/* Tabel Kinerja & Belum Lapor */}
-      <div className='grid gap-6 md:grid-cols-2'>
-        {/* Table: Kinerja */}
-        <Card className='col-span-1 md:col-span-1'>
-          <CardHeader>
-            <CardTitle>Performa Anggota</CardTitle>
-            <CardDescription>
-              Berdasarkan periode{' '}
-              {period === 'today'
-                ? 'Hari Ini'
-                : period === 'week'
-                  ? 'Minggu Ini'
-                  : 'Bulan Ini'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className='h-[400px] w-full rounded-md border'>
-              <Table>
-                <TableHeader className='bg-muted/50 sticky top-0 z-10'>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead className='text-center'>Total Tugas</TableHead>
-                  <TableHead className='text-center'>Selesai</TableHead>
-                  <TableHead className='text-right'>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  members.map((member) => {
-                    const memberActs = activities.filter(
-                    (a) => a.user_id === member.user_id
-                  )
-                  const doneActs = memberActs.filter((a) => a.is_done)
-                  // @ts-ignore
-                  const profileData =
-                    ((Array.isArray(member.profiles)
-                      ? member.profiles[0]
-                      : member.profiles) as any) || {}
-
-                  return (
-                    <TableRow key={member.user_id}>
-                      <TableCell className='font-medium'>
-                        {profileData.name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className='text-center'>
-                        {memberActs.length}
-                      </TableCell>
-                      <TableCell className='text-center'>
-                        {memberActs.length > 0
-                          ? Math.round(
-                              (doneActs.length / memberActs.length) * 100
-                            )
-                          : 0}
-                        %
-                      </TableCell>
-                      <TableCell className='text-right'>
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          onClick={() => {
-                            setSelectedMemberId(member.user_id)
-                            setSelectedMemberName(profileData.name || 'Unknown')
-                            setSheetOpen(true)
-                          }}
-                        >
-                          Detail
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                }))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Table: Belum Lapor */}
-        <Card className='col-span-1 md:col-span-1'>
-          <CardHeader>
-            <CardTitle className='text-red-600 dark:text-red-400'>
-              Belum Ada Pelaporan
-            </CardTitle>
-            <CardDescription>
-              Anggota yang belum input setidaknya 1 aktivitas hari ini.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
+      {isMobile ? (
+        <TeamLeaderCards
+          members={members}
+          activities={activities}
+          missingReportMembers={missingReportMembers}
+          isLoading={isLoading}
+        />
+      ) : (
+        <div className='grid gap-6 md:grid-cols-2'>
+          {/* Table: Kinerja */}
+          <Card className='col-span-1 md:col-span-1'>
+            <CardHeader>
+              <CardTitle>Performa Anggota</CardTitle>
+              <CardDescription>
+                Berdasarkan periode{' '}
+                {period === 'today'
+                  ? 'Hari Ini'
+                  : period === 'week'
+                    ? 'Minggu Ini'
+                    : 'Bulan Ini'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <ScrollArea className='h-[400px] w-full rounded-md border'>
                 <Table>
-                  <TableHeader className='bg-muted/50 sticky top-0 z-10'>
+                  <TableHeader className='sticky top-0 z-10 bg-muted/50'>
                     <TableRow>
                       <TableHead>Nama</TableHead>
-                      <TableHead className='text-right'>Status</TableHead>
+                      <TableHead className='text-center'>Total Tugas</TableHead>
+                      <TableHead className='text-center'>Selesai</TableHead>
+                      <TableHead className='text-right'>Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                      </TableRow>
-                    ))}
+                    {isLoading
+                      ? Array.from({ length: 3 }).map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell>
+                              <Skeleton className='h-5 w-32' />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className='mx-auto h-5 w-16' />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className='mx-auto h-5 w-16' />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className='ml-auto h-5 w-16' />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      : members.map((member) => {
+                          const memberActs = activities.filter(
+                            (a) => a.user_id === member.user_id
+                          )
+                          const doneActs = memberActs.filter((a) => a.is_done)
+                          // @ts-ignore
+                          const profileData =
+                            ((Array.isArray(member.profiles)
+                              ? member.profiles[0]
+                              : member.profiles) as any) || {}
+
+                          return (
+                            <TableRow key={member.user_id}>
+                              <TableCell className='font-medium'>
+                                {profileData.name || 'Unknown'}
+                              </TableCell>
+                              <TableCell className='text-center'>
+                                {memberActs.length}
+                              </TableCell>
+                              <TableCell className='text-center'>
+                                {memberActs.length > 0
+                                  ? Math.round(
+                                      (doneActs.length / memberActs.length) *
+                                        100
+                                    )
+                                  : 0}
+                                %
+                              </TableCell>
+                              <TableCell className='text-right'>
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  onClick={() => {
+                                    setSelectedMemberId(member.user_id)
+                                    setSelectedMemberName(
+                                      profileData.name || 'Unknown'
+                                    )
+                                    setSheetOpen(true)
+                                  }}
+                                >
+                                  Detail
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
                   </TableBody>
                 </Table>
               </ScrollArea>
-            ) : missingReportMembers.length === 0 ? (
-              <div className='flex h-32 items-center justify-center rounded-md border border-dashed text-muted-foreground'>
-                Semua anggota sudah melapor hari ini!
-              </div>
-            ) : (
-              <ScrollArea className='h-[400px] w-full rounded-md border'>
-                <Table>
-                  <TableHeader className='bg-muted/50 sticky top-0 z-10'>
-                    <TableRow>
-                      <TableHead>Nama</TableHead>
-                      <TableHead className='text-right'>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                <TableBody>
-                  {missingReportMembers.map((member) => {
-                    // @ts-ignore
-                    const profileData =
-                      ((Array.isArray(member.profiles)
-                        ? member.profiles[0]
-                        : member.profiles) as any) || {}
-                    return (
-                      <TableRow key={member.user_id}>
-                        <TableCell className='font-medium'>
-                          {profileData.name || 'Unknown'}
-                        </TableCell>
-                        <TableCell className='text-right'>
-                          <Badge variant='destructive'>Belum Lapor</Badge>
-                        </TableCell>
+            </CardContent>
+          </Card>
+
+          {/* Table: Belum Lapor */}
+          <Card className='col-span-1 md:col-span-1'>
+            <CardHeader>
+              <CardTitle className='text-red-600 dark:text-red-400'>
+                Belum Ada Pelaporan
+              </CardTitle>
+              <CardDescription>
+                Anggota yang belum input setidaknya 1 aktivitas hari ini.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <ScrollArea className='h-[400px] w-full rounded-md border'>
+                  <Table>
+                    <TableHeader className='sticky top-0 z-10 bg-muted/50'>
+                      <TableRow>
+                        <TableHead>Nama</TableHead>
+                        <TableHead className='text-right'>Status</TableHead>
                       </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <Skeleton className='h-5 w-32' />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className='ml-auto h-5 w-16' />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              ) : missingReportMembers.length === 0 ? (
+                <div className='flex h-32 items-center justify-center rounded-md border border-dashed text-muted-foreground'>
+                  Semua anggota sudah melapor hari ini!
+                </div>
+              ) : (
+                <ScrollArea className='h-[400px] w-full rounded-md border'>
+                  <Table>
+                    <TableHeader className='sticky top-0 z-10 bg-muted/50'>
+                      <TableRow>
+                        <TableHead>Nama</TableHead>
+                        <TableHead className='text-right'>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {missingReportMembers.map((member) => {
+                        // @ts-ignore
+                        const profileData =
+                          ((Array.isArray(member.profiles)
+                            ? member.profiles[0]
+                            : member.profiles) as any) || {}
+                        return (
+                          <TableRow key={member.user_id}>
+                            <TableCell className='font-medium'>
+                              {profileData.name || 'Unknown'}
+                            </TableCell>
+                            <TableCell className='text-right'>
+                              <Badge variant='destructive'>Belum Lapor</Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <MemberActivityDialog
         userId={selectedMemberId}

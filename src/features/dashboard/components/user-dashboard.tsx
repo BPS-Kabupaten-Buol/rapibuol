@@ -1,10 +1,12 @@
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { Activity, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -13,8 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Link } from '@tanstack/react-router'
 import { ActivityHeatmap } from './activity-heatmap'
 
 export default function UserDashboard({ userId }: { userId: string }) {
@@ -37,15 +37,16 @@ export default function UserDashboard({ userId }: { userId: string }) {
     queryFn: async () => {
       const start = startOfMonth(new Date()).toISOString()
       const end = endOfMonth(new Date()).toISOString()
+      const today = format(new Date(), 'yyyy-MM-dd')
 
-      const [volumeRes, doneRes, avgRes] = await Promise.all([
+      const [todayCountRes, doneRes, totalRes] = await Promise.all([
+        // Jumlah kegiatan hari ini
         supabase
           .from('activities')
-          .select('volume')
+          .select('id', { count: 'exact' })
           .eq('user_id', userId)
-          .gte('date', start)
-          .lte('date', end),
-        // Hitung aktivitas yang selesai bulan ini
+          .eq('date', today),
+        // Tugas selesai bulan ini
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
@@ -53,6 +54,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
           .eq('is_done', true)
           .gte('date', start)
           .lte('date', end),
+        // Total tugas bulan ini (untuk rata-rata)
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
@@ -61,13 +63,12 @@ export default function UserDashboard({ userId }: { userId: string }) {
           .lte('date', end),
       ])
 
-      const totalVolume =
-        volumeRes.data?.reduce((acc, curr) => acc + curr.volume, 0) || 0
+      const todayCount = todayCountRes.count || 0
       const doneCount = doneRes.count || 0
-      const daysInMonth = new Date().getDate()
-      const avgTasks = ((avgRes.count || 0) / daysInMonth).toFixed(1)
+      const weekOfMonth = Math.ceil(new Date().getDate() / 7)
+      const avgTasks = ((totalRes.count || 0) / weekOfMonth).toFixed(1)
 
-      return { totalVolume, doneCount, avgTasks }
+      return { todayCount, doneCount, avgTasks }
     },
   })
 
@@ -118,10 +119,18 @@ export default function UserDashboard({ userId }: { userId: string }) {
           </Avatar>
           <div>
             <h1 className='text-2xl font-bold'>
-              {isLoadingProfile ? <Skeleton className="h-8 w-48" /> : profile?.name || 'User'}
+              {isLoadingProfile ? (
+                <Skeleton className='h-8 w-48' />
+              ) : (
+                profile?.name || 'User'
+              )}
             </h1>
             <div className='mt-2 flex items-center gap-2 text-sm text-muted-foreground'>
-              {isLoadingProfile ? <Skeleton className="h-4 w-32" /> : <span>{profile?.email}</span>}
+              {isLoadingProfile ? (
+                <Skeleton className='h-4 w-32' />
+              ) : (
+                <span>{profile?.email}</span>
+              )}
             </div>
           </div>
         </div>
@@ -141,23 +150,31 @@ export default function UserDashboard({ userId }: { userId: string }) {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoadingStats ? <Skeleton className="h-8 w-16" /> : stats?.totalVolume || 0}
+              {isLoadingStats ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                stats?.todayCount || 0
+              )}
             </div>
-            <p className='text-xs text-muted-foreground'>Bulan ini</p>
+            <p className='text-xs text-muted-foreground'>Hari ini</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
-            <CardTitle className='text-sm font-medium'>Selesai Bulan Ini</CardTitle>
+            <CardTitle className='text-sm font-medium'>
+              Selesai Bulan Ini
+            </CardTitle>
             <Target className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoadingStats ? <Skeleton className="h-8 w-16" /> : stats?.doneCount || 0}
+              {isLoadingStats ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                stats?.doneCount || 0
+              )}
             </div>
-            <p className='text-xs text-muted-foreground'>
-              Aktivitas selesai bulan ini
-            </p>
+            <p className='text-xs text-muted-foreground'>Tugas diselesaikan</p>
           </CardContent>
         </Card>
         <Card>
@@ -169,10 +186,14 @@ export default function UserDashboard({ userId }: { userId: string }) {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoadingStats ? <Skeleton className="h-8 w-16" /> : stats?.avgTasks || '0.0'}
+              {isLoadingStats ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                stats?.avgTasks || '0.0'
+              )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Per hari (Bulan ini)
+              Per minggu (Bulan ini)
             </p>
           </CardContent>
         </Card>
@@ -180,17 +201,21 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
       {/* Bottom Row: Heatmap + Tugas Hari Ini side by side */}
       <div className='grid gap-4 lg:grid-cols-[auto_1fr]'>
-
         {/* Heatmap */}
         <Card className='overflow-hidden lg:w-fit'>
           <CardHeader className='pb-2'>
-            <CardTitle className='text-sm font-medium'>Aktivitas 3 Bulan Terakhir</CardTitle>
+            <CardTitle className='text-sm font-medium'>
+              Aktivitas 3 Bulan Terakhir
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingHeatmap ? (
               <Skeleton className='h-[120px] w-[280px]' />
             ) : (
-              <ActivityHeatmap data={heatmapData || {}} startDate={heatmapStart} />
+              <ActivityHeatmap
+                data={heatmapData || {}}
+                startDate={heatmapStart}
+              />
             )}
           </CardContent>
         </Card>
@@ -199,7 +224,10 @@ export default function UserDashboard({ userId }: { userId: string }) {
         <Card className='min-w-0'>
           <CardHeader className='flex flex-row items-center justify-between'>
             <CardTitle>Daftar Tugas Hari Ini</CardTitle>
-            <Link to='/activities' className='text-sm font-medium hover:underline'>
+            <Link
+              to='/activities'
+              className='text-sm font-medium hover:underline'
+            >
               Aktivitas Saya &rarr;
             </Link>
           </CardHeader>
@@ -218,10 +246,18 @@ export default function UserDashboard({ userId }: { userId: string }) {
                   {isLoadingTasks ? (
                     Array.from({ length: 3 }).map((_, i) => (
                       <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        <TableCell>
+                          <Skeleton className='h-5 w-full' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='h-5 w-24' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='h-5 w-16' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='h-5 w-20' />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : todayTasks?.length === 0 ? (
@@ -265,6 +301,5 @@ export default function UserDashboard({ userId }: { userId: string }) {
         </Card>
       </div>
     </div>
-
   )
 }

@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -31,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
+import { KepalaSatkerCards } from './kepala-satker-dashboard-cards'
 import { MemberActivityDialog } from './member-activity-dialog'
 
 export default function KepalaSatkerDashboard() {
@@ -39,6 +41,7 @@ export default function KepalaSatkerDashboard() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')
+  const isMobile = useIsMobile()
 
   // 1. Fetch All Profiles with Teams & Roles
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
@@ -54,22 +57,24 @@ export default function KepalaSatkerDashboard() {
   })
 
   // 2. Fetch All Activities in the period
-  const { data: allActivities = [], isLoading: isLoadingActivities } = useQuery({
-    queryKey: ['all-activities-satker', period],
-    queryFn: async () => {
-      const today = new Date()
-      // For now, let's just stick to 'month' as requested in plan: "Total Output Satker (bulan berjalan)"
-      const startStr = format(startOfMonth(today), 'yyyy-MM-dd')
-      const endStr = format(endOfMonth(today), 'yyyy-MM-dd')
+  const { data: allActivities = [], isLoading: isLoadingActivities } = useQuery(
+    {
+      queryKey: ['all-activities-satker', period],
+      queryFn: async () => {
+        const today = new Date()
+        // For now, let's just stick to 'month' as requested in plan: "Total Output Satker (bulan berjalan)"
+        const startStr = format(startOfMonth(today), 'yyyy-MM-dd')
+        const endStr = format(endOfMonth(today), 'yyyy-MM-dd')
 
-      const { data } = await supabase
-        .from('activities')
-        .select('*, assignor_team:teams(name)')
-        .gte('date', startStr)
-        .lte('date', endStr)
-      return data || []
-    },
-  })
+        const { data } = await supabase
+          .from('activities')
+          .select('*, assignor_team:teams(name)')
+          .gte('date', startStr)
+          .lte('date', endStr)
+        return data || []
+      },
+    }
+  )
 
   // 3. Today's active users
   const todayStr = format(new Date(), 'yyyy-MM-dd')
@@ -146,7 +151,7 @@ export default function KepalaSatkerDashboard() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoading ? <Skeleton className="h-8 w-16" /> : totalOutput}
+              {isLoading ? <Skeleton className='h-8 w-16' /> : totalOutput}
             </div>
             <p className='text-xs text-muted-foreground'>
               Aktivitas Selesai (Bulan Ini)
@@ -163,7 +168,11 @@ export default function KepalaSatkerDashboard() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoading ? <Skeleton className="h-8 w-16" /> : `${complianceRate}%`}
+              {isLoading ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                `${complianceRate}%`
+              )}
             </div>
             <p className='text-xs text-muted-foreground'>
               Pegawai Melapor Hari Ini
@@ -178,7 +187,7 @@ export default function KepalaSatkerDashboard() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {isLoading ? <Skeleton className="h-8 w-16" /> : allUsers.length}
+              {isLoading ? <Skeleton className='h-8 w-16' /> : allUsers.length}
             </div>
             <p className='text-xs text-muted-foreground'>Terdaftar di Sistem</p>
           </CardContent>
@@ -195,7 +204,11 @@ export default function KepalaSatkerDashboard() {
             <div
               className={`text-2xl font-bold ${missingReportUsers.length > 0 ? 'text-red-500' : ''}`}
             >
-              {isLoading ? <Skeleton className="h-8 w-16" /> : missingReportUsers.length}
+              {isLoading ? (
+                <Skeleton className='h-8 w-16' />
+              ) : (
+                missingReportUsers.length
+              )}
             </div>
             <p className='text-xs text-muted-foreground'>
               Alpha / Belum Input Hari Ini
@@ -216,7 +229,7 @@ export default function KepalaSatkerDashboard() {
           <CardContent className='px-2'>
             <div className='h-[250px] w-full'>
               {isLoading ? (
-                <Skeleton className="h-full w-full" />
+                <Skeleton className='h-full w-full' />
               ) : (
                 <ResponsiveContainer width='100%' height='100%'>
                   <LineChart data={trendData}>
@@ -251,7 +264,7 @@ export default function KepalaSatkerDashboard() {
           <CardContent>
             <div className='h-[250px] w-full'>
               {isLoading ? (
-                <Skeleton className="h-full w-full" />
+                <Skeleton className='h-full w-full' />
               ) : (
                 <ResponsiveContainer width='100%' height='100%'>
                   <BarChart
@@ -285,80 +298,104 @@ export default function KepalaSatkerDashboard() {
       </div>
 
       {/* Master Table Pegawai */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Master Data Pantauan Pegawai</CardTitle>
-          <CardDescription>
-            Daftar seluruh pegawai BPS beserta rekap kerja dan kehadiran lapor.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Pegawai</TableHead>
-                <TableHead>Tim</TableHead>
-                <TableHead className='text-center'>
-                  Aktivitas Bulan Ini
-                </TableHead>
-                <TableHead className='text-center'>
-                  Status Lapor Hari Ini
-                </TableHead>
-                <TableHead className='text-right'>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24 mx-auto" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : allUsers.map((u: any) => {
-                const userActs = allActivities.filter((a) => a.user_id === u.id)
-                const hasReportedToday = activeUsersToday.has(u.id)
-                const teamName = u.users_teams?.[0]?.teams?.name || '-'
+      {isMobile ? (
+        <KepalaSatkerCards
+          users={allUsers as any}
+          activities={allActivities}
+          activeUsersToday={activeUsersToday}
+          isLoading={isLoading}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Master Data Pantauan Pegawai</CardTitle>
+            <CardDescription>
+              Daftar seluruh pegawai BPS beserta rekap kerja dan kehadiran
+              lapor.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama Pegawai</TableHead>
+                  <TableHead>Tim</TableHead>
+                  <TableHead className='text-center'>
+                    Aktivitas Bulan Ini
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    Status Lapor Hari Ini
+                  </TableHead>
+                  <TableHead className='text-right'>Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className='h-5 w-48' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='h-5 w-32' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='mx-auto h-5 w-16' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='mx-auto h-5 w-24' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='ml-auto h-5 w-16' />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : allUsers.map((u: any) => {
+                      const userActs = allActivities.filter(
+                        (a) => a.user_id === u.id
+                      )
+                      const hasReportedToday = activeUsersToday.has(u.id)
+                      const teamName = u.users_teams?.[0]?.teams?.name || '-'
 
-                return (
-                  <TableRow key={u.id}>
-                    <TableCell className='font-medium'>{u.name}</TableCell>
-                    <TableCell>{teamName}</TableCell>
-                    <TableCell className='text-center text-lg font-bold'>
-                      {userActs.length}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {hasReportedToday ? (
-                        <Badge variant='default' className='bg-green-500'>
-                          Sudah Lapor
-                        </Badge>
-                      ) : (
-                        <Badge variant='destructive'>Belum Lapor</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => {
-                          setSelectedMemberId(u.id)
-                          setSelectedMemberName(u.name)
-                          setSheetOpen(true)
-                        }}
-                      >
-                        Detail
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                      return (
+                        <TableRow key={u.id}>
+                          <TableCell className='font-medium'>
+                            {u.name}
+                          </TableCell>
+                          <TableCell>{teamName}</TableCell>
+                          <TableCell className='text-center text-lg font-bold'>
+                            {userActs.length}
+                          </TableCell>
+                          <TableCell className='text-center'>
+                            {hasReportedToday ? (
+                              <Badge variant='default' className='bg-green-500'>
+                                Sudah Lapor
+                              </Badge>
+                            ) : (
+                              <Badge variant='destructive'>Belum Lapor</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className='text-right'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => {
+                                setSelectedMemberId(u.id)
+                                setSelectedMemberName(u.name)
+                                setSheetOpen(true)
+                              }}
+                            >
+                              Detail
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <MemberActivityDialog
         userId={selectedMemberId}
