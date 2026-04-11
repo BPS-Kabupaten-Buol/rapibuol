@@ -23,7 +23,7 @@ import {
 } from '@tanstack/react-table'
 import { LayoutGrid, Table as TableIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
+// import { useIsMobile } from '@/hooks/use-mobile'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -89,7 +89,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   // Date preset filter state - default: today
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
 
-  const isMobile = useIsMobile()
+  // const isMobile = useIsMobile()
 
   // View mode state - default is card for mobile, table for desktop
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card')
