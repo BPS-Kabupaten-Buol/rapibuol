@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/auth-provider'
+import { useProfile } from '@/hooks/use-profile'
 import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
@@ -15,10 +16,12 @@ import { NavUser } from './nav-user'
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const { user } = useAuth()
+  const { data: profile } = useProfile(user?.id)
+
+  const fallbackName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'User'
 
   const userData = {
-    name:
-      user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'User',
+    name: profile?.name ?? fallbackName,
     email: user?.email ?? '',
     avatar: user?.user_metadata?.avatar_url ?? '/avatars/default.png',
   }

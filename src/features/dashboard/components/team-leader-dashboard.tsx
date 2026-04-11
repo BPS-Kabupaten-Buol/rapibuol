@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MemberActivityDialog } from './member-activity-dialog'
 
 interface Team {
@@ -57,7 +58,7 @@ export default function TeamLeaderDashboard({
   const teamId = selectedTeam ? parseInt(selectedTeam) : null
 
   // 1. Fetch Team Members
-  const { data: members = [] } = useQuery({
+  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
     queryKey: ['team-members', teamId],
     queryFn: async () => {
       if (!teamId) return []
@@ -82,7 +83,7 @@ export default function TeamLeaderDashboard({
   const memberIds = useMemo(() => members.map((m) => m.user_id), [members])
 
   // 2. Fetch Activities for current period
-  const { data: activities = [] } = useQuery({
+  const { data: activities = [], isLoading: isLoadingActivities } = useQuery({
     queryKey: ['team-activities', teamId, period, memberIds],
     queryFn: async () => {
       if (!teamId || memberIds.length === 0) return []
@@ -115,7 +116,7 @@ export default function TeamLeaderDashboard({
   })
 
   // 3. Fetch Today's Activities explicitly (for "Belum Lapor" alert)
-  const { data: todayActivities = [] } = useQuery({
+  const { data: todayActivities = [], isLoading: isLoadingToday } = useQuery({
     queryKey: ['team-activities-today', teamId, memberIds],
     queryFn: async () => {
       if (!teamId || memberIds.length === 0) return []
@@ -131,6 +132,8 @@ export default function TeamLeaderDashboard({
   })
 
   // Calculations
+  const isLoading = isLoadingMembers || isLoadingActivities || isLoadingToday
+
   const completedActivities = activities.filter((a) => a.is_done).length
 
   // Members who have at least one activity recorded today
@@ -189,7 +192,7 @@ export default function TeamLeaderDashboard({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {completedActivities} / {activities.length}
+              {isLoading ? <Skeleton className="h-8 w-16" /> : `${completedActivities} / ${activities.length}`}
             </div>
             <p className='text-xs text-muted-foreground'>
               Aktivitas selesai dari total di periode ini
@@ -206,7 +209,7 @@ export default function TeamLeaderDashboard({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {activeMembersToday.size} / {members.length}
+              {isLoading ? <Skeleton className="h-8 w-16" /> : `${activeMembersToday.size} / ${members.length}`}
             </div>
             <p className='text-xs text-muted-foreground'>
               Anggota yang sudah input hari ini
@@ -231,7 +234,7 @@ export default function TeamLeaderDashboard({
             <div
               className={`text-2xl font-bold ${missingReportMembers.length > 0 ? 'text-red-600 dark:text-red-400' : ''}`}
             >
-              {missingReportMembers.length}
+              {isLoading ? <Skeleton className="h-8 w-16" /> : missingReportMembers.length}
             </div>
             <p className='text-xs text-muted-foreground'>
               Orang belum input hari ini
@@ -267,8 +270,18 @@ export default function TeamLeaderDashboard({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {members.map((member) => {
-                  const memberActs = activities.filter(
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  members.map((member) => {
+                    const memberActs = activities.filter(
                     (a) => a.user_id === member.user_id
                   )
                   const doneActs = memberActs.filter((a) => a.is_done)
@@ -309,7 +322,7 @@ export default function TeamLeaderDashboard({
                       </TableCell>
                     </TableRow>
                   )
-                })}
+                }))}
                 </TableBody>
               </Table>
             </ScrollArea>
@@ -327,7 +340,26 @@ export default function TeamLeaderDashboard({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {missingReportMembers.length === 0 ? (
+            {isLoading ? (
+              <ScrollArea className='h-[400px] w-full rounded-md border'>
+                <Table>
+                  <TableHeader className='bg-muted/50 sticky top-0 z-10'>
+                    <TableRow>
+                      <TableHead>Nama</TableHead>
+                      <TableHead className='text-right'>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            ) : missingReportMembers.length === 0 ? (
               <div className='flex h-32 items-center justify-center rounded-md border border-dashed text-muted-foreground'>
                 Semua anggota sudah melapor hari ini!
               </div>

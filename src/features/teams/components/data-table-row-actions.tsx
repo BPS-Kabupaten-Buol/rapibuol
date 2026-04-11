@@ -17,7 +17,7 @@ interface DataTableRowActionsProps {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const navigate = useNavigate()
-  const { setSelectedTeam, onEditDialogOpen, onDeleteDialogOpen } =
+  const { setSelectedTeam, onEditDialogOpen, onDeleteDialogOpen, onMembersOpen } =
     useTeamDialog()
 
   return (
@@ -35,7 +35,16 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           }}
         >
           <Users className='mr-2 h-4 w-4' />
-          View Members
+          View Members Details
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setSelectedTeam(row.original)
+            onMembersOpen(true)
+          }}
+        >
+          <Users className='mr-2 h-4 w-4' />
+          Manage Members
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {

@@ -151,12 +151,12 @@ export function useTeams() {
         prev.map((t) =>
           t.id === id
             ? {
-                ...t,
-                name: data.name,
-                leader: data.leader,
-                leader_name: profile?.name ?? null,
-                leader_email: profile?.email ?? null,
-              }
+              ...t,
+              name: data.name,
+              leader: data.leader,
+              leader_name: profile?.name ?? null,
+              leader_email: profile?.email ?? null,
+            }
             : t
         )
       )
@@ -322,6 +322,27 @@ export function useTeamMembers(teamId: number) {
     }
   }
 
+  const addMembers = async (userIds: string[]) => {
+    if (userIds.length === 0) return
+
+    try {
+      const rows = userIds.map((user_id) => ({ user_id, team_id: teamId }))
+
+      const { error: addError } = await supabase
+        .from('users_teams')
+        .insert(rows)
+
+      if (addError) throw addError
+      await fetchMembers()
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to add members'
+      // eslint-disable-next-line no-console
+      console.error('Add team members error:', err)
+      throw new Error(message)
+    }
+  }
+
   const removeMember = async (memberId: number) => {
     const previousMembers = members
 
@@ -375,6 +396,7 @@ export function useTeamMembers(teamId: number) {
     isLoading,
     error,
     addMember,
+    addMembers,
     removeMember,
     removeMembers,
     refetch: fetchMembers,

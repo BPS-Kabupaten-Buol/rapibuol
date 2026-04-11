@@ -22,11 +22,13 @@ interface ActivityHeatmapProps {
 
 export function ActivityHeatmap({
   data,
-  startDate = subDays(new Date(), 364), // Last 364 days to make ~52 exact weeks
+  startDate = subDays(new Date(), 90),
   endDate = new Date(),
 }: ActivityHeatmapProps) {
+  const CELL_SIZE = 14
+  const CELL_GAP = 5
+
   const { weeks, monthLabels } = useMemo(() => {
-    // For heatmap, force the grid to start on Sunday of the first week
     const calendarStart = startOfWeek(startDate, { weekStartsOn: 0 })
     const calendarEnd = endOfWeek(endDate, { weekStartsOn: 0 })
 
@@ -49,8 +51,6 @@ export function ActivityHeatmap({
     weeks.forEach((week, colIndex) => {
       const firstDayOfWeek = week[0]
       const month = firstDayOfWeek.getMonth()
-      // Only show month label if it's a new month and we're not at the very beginning (unless explicit)
-      // to avoid overlapping month labels.
       if (month !== currentMonth && firstDayOfWeek >= startDate) {
         monthLabels.push({
           month: format(firstDayOfWeek, 'MMM'),
@@ -71,21 +71,21 @@ export function ActivityHeatmap({
     return 'bg-green-800 dark:bg-green-400'
   }
 
+  const cellPx = `${CELL_SIZE}px`
+  const gapPx = `${CELL_GAP}px`
+
   return (
-    <div className='flex w-full flex-col overflow-x-auto pb-4'>
-      <div className='min-w-fit px-4'>
+    <div className='flex w-full flex-col overflow-x-auto pb-2'>
+      <div className='min-w-fit'>
         {/* Months header */}
-        <div
-          className='mb-2 flex'
-          style={{ position: 'relative', height: '20px' }}
-        >
-          <div className='w-[30px]' /> {/* Space for day labels */}
+        <div className='mb-2 flex' style={{ position: 'relative', height: '20px' }}>
+          <div style={{ width: '32px' }} />
           <div className='relative flex-1'>
             {monthLabels.map((ml, i) => (
               <span
                 key={i}
-                className='absolute text-xs text-muted-foreground'
-                style={{ left: `${ml.colIndex * 15}px`, width: '15px' }}
+                className='absolute text-xs text-muted-foreground font-medium'
+                style={{ left: `${ml.colIndex * (CELL_SIZE + CELL_GAP)}px` }}
               >
                 {ml.month}
               </span>
@@ -94,32 +94,35 @@ export function ActivityHeatmap({
         </div>
 
         {/* Heatmap Grid */}
-        <div className='flex items-start gap-1'>
-          {/* Day Labels - only show Mon, Wed, Fri */}
-          <div className='mt-0 flex w-[30px] flex-col gap-[4px] pt-1 text-[10px] text-muted-foreground'>
-            <span className='hidden h-[10px]' /> {/* Sun */}
-            <span className='h-[10px] leading-[10px]'>Sen</span> {/* Mon */}
-            <span className='hidden h-[10px]' /> {/* Tue */}
-            <span className='h-[10px] leading-[10px]'>Rab</span> {/* Wed */}
-            <span className='hidden h-[10px]' /> {/* Thu */}
-            <span className='h-[10px] leading-[10px]'>Jum</span> {/* Fri */}
-            <span className='hidden h-[10px]' /> {/* Sat */}
+        <div className='flex items-start' style={{ gap: gapPx }}>
+          {/* Day Labels */}
+          <div
+            className='flex flex-col text-[11px] text-muted-foreground'
+            style={{ width: '28px', gap: gapPx, paddingTop: '2px' }}
+          >
+            <span style={{ height: cellPx }} className='hidden' />
+            <span style={{ height: cellPx }} className='leading-none flex items-center'>Sen</span>
+            <span style={{ height: cellPx }} className='hidden' />
+            <span style={{ height: cellPx }} className='leading-none flex items-center'>Rab</span>
+            <span style={{ height: cellPx }} className='hidden' />
+            <span style={{ height: cellPx }} className='leading-none flex items-center'>Jum</span>
+            <span style={{ height: cellPx }} className='hidden' />
           </div>
 
           <TooltipProvider delayDuration={100}>
-            <div className='flex flex-nowrap gap-[4px]'>
+            <div className='flex flex-nowrap' style={{ gap: gapPx }}>
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className='flex flex-col gap-[4px]'>
+                <div key={weekIndex} className='flex flex-col' style={{ gap: gapPx }}>
                   {week.map((day) => {
                     const dateStr = format(day, 'yyyy-MM-dd')
                     const count = data[dateStr] || 0
 
-                    // Don't show boxes before start date or after end date
                     if (day < startDate || day > endDate) {
                       return (
                         <div
                           key={dateStr}
-                          className='h-[10px] w-[10px] rounded-[2px]'
+                          style={{ height: cellPx, width: cellPx }}
+                          className='rounded-[3px]'
                         />
                       )
                     }
@@ -128,8 +131,9 @@ export function ActivityHeatmap({
                       <Tooltip key={dateStr}>
                         <TooltipTrigger asChild>
                           <div
+                            style={{ height: cellPx, width: cellPx }}
                             className={cn(
-                              'h-[10px] w-[10px] cursor-pointer rounded-[2px] transition-colors',
+                              'cursor-pointer rounded-[3px] transition-colors',
                               getIntensityClass(count)
                             )}
                           />
@@ -138,7 +142,7 @@ export function ActivityHeatmap({
                           {count === 0
                             ? 'Tidak ada aktivitas'
                             : `${count} aktivitas`}{' '}
-                          pada {format(day, 'MMM d, yyyy')}
+                          pada {format(day, 'd MMM yyyy')}
                         </TooltipContent>
                       </Tooltip>
                     )
@@ -151,15 +155,15 @@ export function ActivityHeatmap({
 
         {/* Legend */}
         <div className='mt-4 flex items-center justify-end gap-2 text-xs text-muted-foreground'>
-          <span>Lebih Sedikit</span>
+          <span>Sedikit</span>
           <div className='flex gap-1'>
-            <div className='h-[10px] w-[10px] rounded-[2px] bg-muted' />
-            <div className='h-[10px] w-[10px] rounded-[2px] bg-green-200 dark:bg-green-900/50' />
-            <div className='h-[10px] w-[10px] rounded-[2px] bg-green-400 dark:bg-green-700' />
-            <div className='h-[10px] w-[10px] rounded-[2px] bg-green-600 dark:bg-green-500' />
-            <div className='h-[10px] w-[10px] rounded-[2px] bg-green-800 dark:bg-green-400' />
+            <div style={{ height: cellPx, width: cellPx }} className='rounded-[3px] bg-muted' />
+            <div style={{ height: cellPx, width: cellPx }} className='rounded-[3px] bg-green-200 dark:bg-green-900/50' />
+            <div style={{ height: cellPx, width: cellPx }} className='rounded-[3px] bg-green-400 dark:bg-green-700' />
+            <div style={{ height: cellPx, width: cellPx }} className='rounded-[3px] bg-green-600 dark:bg-green-500' />
+            <div style={{ height: cellPx, width: cellPx }} className='rounded-[3px] bg-green-800 dark:bg-green-400' />
           </div>
-          <span>Lebih Banyak</span>
+          <span>Banyak</span>
         </div>
       </div>
     </div>

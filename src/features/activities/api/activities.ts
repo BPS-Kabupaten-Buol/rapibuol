@@ -5,11 +5,17 @@ import {
   type UpdateActivityInput,
 } from '../data/schema'
 
-export async function getActivities(): Promise<Activity[]> {
-  const { data, error } = await supabase
+export async function getActivities(userId?: string): Promise<Activity[]> {
+  let query = supabase
     .from('activities')
     .select('*')
     .order('created_at', { ascending: false })
+
+  if (userId) {
+    query = query.eq('user_id', userId)
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
   return data

@@ -3,6 +3,7 @@ import { Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { TeamWithLeader } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
+import { useTeamDialog } from './teams-provider'
 
 export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
   {
@@ -40,10 +41,22 @@ export const teamsColumns: ColumnDef<TeamWithLeader>[] = [
     header: 'Members',
     cell: ({ row }) => {
       const count = row.getValue('member_count') as number
+      const { setSelectedTeam, onMembersOpen } = useTeamDialog()
+
       return (
-        <Badge variant='outline'>
-          {count} {count === 1 ? 'member' : 'members'}
-        </Badge>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setSelectedTeam(row.original)
+            onMembersOpen(true)
+          }}
+          className='flex items-center transition-opacity hover:opacity-70'
+          title='Click to manage members'
+        >
+          <Badge variant='outline' className='cursor-pointer'>
+            {count} {count === 1 ? 'member' : 'members'}
+          </Badge>
+        </button>
       )
     },
   },

@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MemberActivityDialog } from './member-activity-dialog'
 
 export default function KepalaSatkerDashboard() {
@@ -40,7 +41,7 @@ export default function KepalaSatkerDashboard() {
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')
 
   // 1. Fetch All Profiles with Teams & Roles
-  const { data: allUsers = [] } = useQuery({
+  const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ['all-users-satker'],
     queryFn: async () => {
       const { data } = await supabase.from('profiles').select(`
@@ -53,7 +54,7 @@ export default function KepalaSatkerDashboard() {
   })
 
   // 2. Fetch All Activities in the period
-  const { data: allActivities = [] } = useQuery({
+  const { data: allActivities = [], isLoading: isLoadingActivities } = useQuery({
     queryKey: ['all-activities-satker', period],
     queryFn: async () => {
       const today = new Date()
@@ -116,6 +117,8 @@ export default function KepalaSatkerDashboard() {
   }, [allActivities])
 
   // Calculate Metrics
+  const isLoading = isLoadingUsers || isLoadingActivities
+
   const complianceRate =
     allUsers.length > 0
       ? Math.round((activeUsersToday.size / allUsers.length) * 100)
@@ -142,7 +145,9 @@ export default function KepalaSatkerDashboard() {
             <Activity className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{totalOutput}</div>
+            <div className='text-2xl font-bold'>
+              {isLoading ? <Skeleton className="h-8 w-16" /> : totalOutput}
+            </div>
             <p className='text-xs text-muted-foreground'>
               Aktivitas Selesai (Bulan Ini)
             </p>
@@ -157,7 +162,9 @@ export default function KepalaSatkerDashboard() {
             <Clock className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{complianceRate}%</div>
+            <div className='text-2xl font-bold'>
+              {isLoading ? <Skeleton className="h-8 w-16" /> : `${complianceRate}%`}
+            </div>
             <p className='text-xs text-muted-foreground'>
               Pegawai Melapor Hari Ini
             </p>
@@ -170,7 +177,9 @@ export default function KepalaSatkerDashboard() {
             <Users className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{allUsers.length}</div>
+            <div className='text-2xl font-bold'>
+              {isLoading ? <Skeleton className="h-8 w-16" /> : allUsers.length}
+            </div>
             <p className='text-xs text-muted-foreground'>Terdaftar di Sistem</p>
           </CardContent>
         </Card>
@@ -186,7 +195,7 @@ export default function KepalaSatkerDashboard() {
             <div
               className={`text-2xl font-bold ${missingReportUsers.length > 0 ? 'text-red-500' : ''}`}
             >
-              {missingReportUsers.length}
+              {isLoading ? <Skeleton className="h-8 w-16" /> : missingReportUsers.length}
             </div>
             <p className='text-xs text-muted-foreground'>
               Alpha / Belum Input Hari Ini
@@ -206,26 +215,30 @@ export default function KepalaSatkerDashboard() {
           </CardHeader>
           <CardContent className='px-2'>
             <div className='h-[250px] w-full'>
-              <ResponsiveContainer width='100%' height='100%'>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray='3 3' vertical={false} />
-                  <XAxis
-                    dataKey='date'
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip />
-                  <Line
-                    type='monotone'
-                    dataKey='total'
-                    stroke='#3b82f6'
-                    strokeWidth={2}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <Skeleton className="h-full w-full" />
+              ) : (
+                <ResponsiveContainer width='100%' height='100%'>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray='3 3' vertical={false} />
+                    <XAxis
+                      dataKey='date'
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip />
+                    <Line
+                      type='monotone'
+                      dataKey='total'
+                      stroke='#3b82f6'
+                      strokeWidth={2}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -237,31 +250,35 @@ export default function KepalaSatkerDashboard() {
           </CardHeader>
           <CardContent>
             <div className='h-[250px] w-full'>
-              <ResponsiveContainer width='100%' height='100%'>
-                <BarChart
-                  data={teamStats}
-                  layout='vertical'
-                  margin={{ left: 20 }}
-                >
-                  <CartesianGrid strokeDasharray='3 3' horizontal={false} />
-                  <XAxis
-                    type='number'
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    dataKey='name'
-                    type='category'
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    width={100}
-                  />
-                  <Tooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey='total' fill='#10b981' radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <Skeleton className="h-full w-full" />
+              ) : (
+                <ResponsiveContainer width='100%' height='100%'>
+                  <BarChart
+                    data={teamStats}
+                    layout='vertical'
+                    margin={{ left: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray='3 3' horizontal={false} />
+                    <XAxis
+                      type='number'
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      dataKey='name'
+                      type='category'
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      width={100}
+                    />
+                    <Tooltip cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey='total' fill='#10b981' radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -291,7 +308,17 @@ export default function KepalaSatkerDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allUsers.map((u: any) => {
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : allUsers.map((u: any) => {
                 const userActs = allActivities.filter((a) => a.user_id === u.id)
                 const hasReportedToday = activeUsersToday.has(u.id)
                 const teamName = u.users_teams?.[0]?.teams?.name || '-'

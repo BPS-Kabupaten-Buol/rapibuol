@@ -75,12 +75,75 @@ export function ActivitiesMutateDrawer({
 
   const createMutation = useMutation({
     mutationFn: createActivity,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] })
-      toast.success('Aktivitas berhasil dibuat')
+    onMutate: async (newActivity) => {
+      await queryClient.cancelQueries({ queryKey: ['activities', user?.id] })
+      if (user) {
+        await queryClient.cancelQueries({ queryKey: ['tasks_today', user.id] })
+        await queryClient.cancelQueries({ queryKey: ['stats', user.id] })
+      }
+
+      const previousActivities = user ? queryClient.getQueryData(['activities', user.id]) : undefined
+      const previousTodayTasks = user ? queryClient.getQueryData(['tasks_today', user.id]) : undefined
+      const previousStats = user ? queryClient.getQueryData(['stats', user.id]) : undefined
+
+      const optimisticActivity = {
+        id: Math.random(),
+        ...newActivity,
+        unit: units.find((u) => u.id === newActivity.unit),
+        assignor_team: teams.find((t) => t.id === newActivity.assignor),
+      }
+
+      if (user) {
+        queryClient.setQueryData(['activities', user.id], (old: any) => [
+          optimisticActivity,
+          ...(old || []),
+        ])
+      }
+
+      if (user) {
+        const today = format(new Date(), 'yyyy-MM-dd')
+        if (newActivity.date === today) {
+          queryClient.setQueryData(['tasks_today', user.id], (old: any) => [
+            optimisticActivity,
+            ...(old || []),
+          ])
+        }
+        
+        const isThisMonth = newActivity.date.startsWith(today.substring(0, 7))
+        if (isThisMonth) {
+          queryClient.setQueryData(['stats', user.id], (old: any) => {
+            if (!old) return old
+            return {
+              ...old,
+              totalVolume: (old.totalVolume || 0) + (newActivity.volume || 0),
+              pendingCount: newActivity.is_done ? old.pendingCount : (old.pendingCount || 0) + 1,
+            }
+          })
+        }
+      }
+
+      return { previousActivities, previousTodayTasks, previousStats }
     },
-    onError: () => {
+    onError: (_err, _newActivity, context) => {
+      if (context?.previousActivities && user) {
+        queryClient.setQueryData(['activities', user.id], context.previousActivities)
+      }
+      if (context?.previousTodayTasks && user) {
+        queryClient.setQueryData(['tasks_today', user.id], context.previousTodayTasks)
+      }
+      if (context?.previousStats && user) {
+        queryClient.setQueryData(['stats', user.id], context.previousStats)
+      }
       toast.error('Gagal membuat aktivitas')
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      queryClient.invalidateQueries({ queryKey: ['heatmap'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks_today'] })
+    },
+    onSuccess: () => {
+      toast.success('Aktivitas berhasil dibuat')
     },
   })
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -21,13 +22,18 @@ export function TeamDetail() {
   const [isAddOpen, setIsAddOpen] = useState(false)
 
   const teamIdNum = parseInt(teamId, 10)
-  const { teams } = useTeams()
-  const { members, isLoading, addMember, removeMember } =
-    useTeamMembers(teamIdNum)
+  const { teams, isLoading: isTeamsLoading } = useTeams()
+  const {
+    members,
+    isLoading: isMembersLoading,
+    addMembers,
+    removeMember,
+  } = useTeamMembers(teamIdNum)
 
   const team = teams.find((t) => t.id === teamIdNum)
+  const isLoading = isTeamsLoading || isMembersLoading
 
-  if (!team) {
+  if (!isLoading && !team) {
     return (
       <Main className='flex items-center justify-center'>
         <div className='text-center'>
@@ -68,17 +74,32 @@ export function TeamDetail() {
 
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
         <div className='flex flex-wrap items-end justify-between gap-2'>
-          <div>
-            <h2 className='text-2xl font-bold tracking-tight'>{team.name}</h2>
-            <p className='text-muted-foreground'>
-              Leader: {team.leader_name || 'Unassigned'} • {members.length}{' '}
-              {members.length === 1 ? 'member' : 'members'}
-            </p>
+          <div className='space-y-2'>
+            {isLoading ? (
+              <>
+                <Skeleton className='h-8 w-64' />
+                <Skeleton className='h-4 w-48' />
+              </>
+            ) : (
+              <>
+                <h2 className='text-2xl font-bold tracking-tight'>
+                  {team?.name}
+                </h2>
+                <p className='text-muted-foreground'>
+                  Leader: {team?.leader_name || 'Unassigned'} • {members.length}{' '}
+                  {members.length === 1 ? 'member' : 'members'}
+                </p>
+              </>
+            )}
           </div>
-          <Button onClick={() => setIsAddOpen(true)} size='sm'>
-            <Plus className='mr-2 h-4 w-4' />
-            Add Member
-          </Button>
+          {isLoading ? (
+            <Skeleton className='h-9 w-32' />
+          ) : (
+            <Button onClick={() => setIsAddOpen(true)} size='sm'>
+              <Plus className='mr-2 h-4 w-4' />
+              Add Member
+            </Button>
+          )}
         </div>
 
         <TeamMembersTable
@@ -90,7 +111,7 @@ export function TeamDetail() {
         <AddMemberDialog
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
-          onAddMember={addMember}
+          onAddMembers={addMembers}
           currentMembers={members}
         />
       </Main>

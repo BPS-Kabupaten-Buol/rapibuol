@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { LogOut, Settings, User } from 'lucide-react'
 import { useAuth } from '@/context/auth-provider'
+import { useProfile } from '@/hooks/use-profile'
 import useDialogState from '@/hooks/use-dialog-state'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -17,9 +18,11 @@ import { SignOutDialog } from '@/components/sign-out-dialog'
 export function ProfileDropdown() {
   const [open, setOpen] = useDialogState()
   const { user } = useAuth()
+  const { data: profile } = useProfile(user?.id)
 
   const email = user?.email ?? 'User'
-  const name = user?.user_metadata?.full_name ?? email.split('@')[0]
+  const fallbackName = user?.user_metadata?.full_name ?? email.split('@')[0]
+  const name = profile?.name ?? fallbackName
   const avatar = user?.user_metadata?.avatar_url ?? '/avatars/default.png'
   const initials = name
     .split(' ')

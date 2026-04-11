@@ -33,17 +33,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { LayoutGrid, Table as TableIcon } from 'lucide-react'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { type Activity } from '../data/schema'
 import { activitiesColumns } from './activities-columns'
+import { ActivitiesCards } from './activities-cards'
 import { DataTableBulkActions } from './data-table-bulk-actions'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const route = getRouteApi('/_authenticated/activities/')
 
 type DataTableProps = {
   data: Activity[]
+  isLoading?: boolean
 }
 
 type DateFilter = 'today' | 'week' | 'month'
@@ -69,7 +75,7 @@ function getDateRange(filter: DateFilter): { start: Date; end: Date } {
   }
 }
 
-export function ActivitiesTable({ data }: DataTableProps) {
+export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: getTeams,
@@ -82,6 +88,18 @@ export function ActivitiesTable({ data }: DataTableProps) {
 
   // Date preset filter state - default: today
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
+
+  const isMobile = useIsMobile()
+
+  // View mode state - default is card for mobile, table for desktop
+  const [viewMode, setViewMode] = useState<'table' | 'card'>(
+    isMobile ? 'card' : 'table'
+  )
+
+  // Sync viewMode with mobile detection on initial mount
+  useEffect(() => {
+    setViewMode(isMobile ? 'card' : 'table')
+  }, [isMobile])
 
   // Manual date range state (overrides preset when filled)
   const [startDate, setStartDate] = useState('')
@@ -213,6 +231,22 @@ export function ActivitiesTable({ data }: DataTableProps) {
             // },
           ]
         }
+        viewSlot={
+          <Tabs
+            value={viewMode}
+            onValueChange={(v) => setViewMode(v as 'table' | 'card')}
+            className='h-8'
+          >
+            <TabsList className='h-8 p-1'>
+              <TabsTrigger value='table' className='h-6 px-2' title='Tampilan Tabel'>
+                <TableIcon className='h-3.5 w-3.5' />
+              </TabsTrigger>
+              <TabsTrigger value='card' className='h-6 px-2' title='Tampilan Kartu'>
+                <LayoutGrid className='h-3.5 w-3.5' />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
         dateRangeSlot={
           <div className='flex flex-wrap items-center gap-2'>
             <div className='flex items-center gap-1 rounded-lg border p-1'>
@@ -273,69 +307,106 @@ export function ActivitiesTable({ data }: DataTableProps) {
           </div>
         }
       />
-      <div className='overflow-hidden rounded-md border'>
-        <Table className='min-w-xl'>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className={cn(
-                        header.column.columnDef.meta?.className,
-                        header.column.columnDef.meta?.thClassName
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        cell.column.columnDef.meta?.className,
-                        cell.column.columnDef.meta?.tdClassName
-                      )}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+      {viewMode === 'table' ? (
+        <div className='overflow-hidden rounded-md border'>
+          <Table className='min-w-xl'>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        className={cn(
+                          header.column.columnDef.meta?.className,
+                          header.column.columnDef.meta?.thClassName
+                        )}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    )
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={activitiesColumns(teams, units).length}
-                  className='h-24 text-center'
-                >
-                  Tidak ada hasil.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-10" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          cell.column.columnDef.meta?.className,
+                          cell.column.columnDef.meta?.tdClassName
+                        )}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={activitiesColumns(teams, units).length}
+                    className='h-24 text-center'
+                  >
+                    Tidak ada hasil.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      ) : isLoading ? (
+        <div className='flex flex-col divide-y divide-border/50 overflow-hidden rounded-xl border bg-card shadow-sm'>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className='flex items-start gap-4 px-5 py-4'>
+              <Skeleton className='mt-2 h-2 w-2 shrink-0 rounded-full' />
+              <div className='flex flex-1 flex-col gap-3'>
+                <div className='flex gap-2'>
+                  <Skeleton className='h-5 w-36 rounded-md' />
+                  <Skeleton className='h-5 w-16 rounded-md' />
+                  <Skeleton className='h-5 w-16 rounded-md' />
+                </div>
+                <Skeleton className='h-5 w-3/4' />
+                <div className='flex gap-4'>
+                  <Skeleton className='h-4 w-20' />
+                  <Skeleton className='h-4 w-24' />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <ActivitiesCards table={table} teams={teams} units={units} />
+      )}
       <DataTablePagination table={table} className='mt-auto' />
       <DataTableBulkActions table={table} />
     </div>

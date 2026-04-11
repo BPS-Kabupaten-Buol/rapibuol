@@ -1,6 +1,6 @@
-import { format, startOfMonth, endOfMonth, subYears } from 'date-fns'
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, Clock, Target } from 'lucide-react'
+import { Activity, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -13,11 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Link } from '@tanstack/react-router'
 import { ActivityHeatmap } from './activity-heatmap'
 
 export default function UserDashboard({ userId }: { userId: string }) {
   // 1. Fetch Profile & Role
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
       const { data } = await supabase
@@ -30,24 +32,27 @@ export default function UserDashboard({ userId }: { userId: string }) {
   })
 
   // 2. Fetch Stats
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['stats', userId],
     queryFn: async () => {
       const start = startOfMonth(new Date()).toISOString()
       const end = endOfMonth(new Date()).toISOString()
 
-      const [volumeRes, pendingRes, avgRes] = await Promise.all([
+      const [volumeRes, doneRes, avgRes] = await Promise.all([
         supabase
           .from('activities')
           .select('volume')
           .eq('user_id', userId)
           .gte('date', start)
           .lte('date', end),
+        // Hitung aktivitas yang selesai bulan ini
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
           .eq('user_id', userId)
-          .eq('is_done', false),
+          .eq('is_done', true)
+          .gte('date', start)
+          .lte('date', end),
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
@@ -58,23 +63,24 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
       const totalVolume =
         volumeRes.data?.reduce((acc, curr) => acc + curr.volume, 0) || 0
-      const pendingCount = pendingRes.count || 0
+      const doneCount = doneRes.count || 0
       const daysInMonth = new Date().getDate()
       const avgTasks = ((avgRes.count || 0) / daysInMonth).toFixed(1)
 
-      return { totalVolume, pendingCount, avgTasks }
+      return { totalVolume, doneCount, avgTasks }
     },
   })
 
-  // 3. Fetch Heatmap Data
-  const { data: heatmapData } = useQuery({
+  // 3. Fetch Heatmap Data (3 bulan terakhir)
+  const heatmapStart = subMonths(new Date(), 3)
+  const { data: heatmapData, isLoading: isLoadingHeatmap } = useQuery({
     queryKey: ['heatmap', userId],
     queryFn: async () => {
       const { data } = await supabase
         .from('activities')
         .select('date')
         .eq('user_id', userId)
-        .gte('date', format(subYears(new Date(), 1), 'yyyy-MM-dd'))
+        .gte('date', format(heatmapStart, 'yyyy-MM-dd'))
 
       const counts =
         data?.reduce((acc: Record<string, number>, curr) => {
@@ -86,7 +92,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
   })
 
   // 4. Fetch Today's Tasks
-  const { data: todayTasks } = useQuery({
+  const { data: todayTasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['tasks_today', userId],
     queryFn: async () => {
       const today = format(new Date(), 'yyyy-MM-dd')
@@ -112,10 +118,10 @@ export default function UserDashboard({ userId }: { userId: string }) {
           </Avatar>
           <div>
             <h1 className='text-2xl font-bold'>
-              {profile?.name || 'Memuat...'}
+              {isLoadingProfile ? <Skeleton className="h-8 w-48" /> : profile?.name || 'User'}
             </h1>
-            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-              <span>{profile?.email}</span>
+            <div className='mt-2 flex items-center gap-2 text-sm text-muted-foreground'>
+              {isLoadingProfile ? <Skeleton className="h-4 w-32" /> : <span>{profile?.email}</span>}
             </div>
           </div>
         </div>
@@ -134,19 +140,23 @@ export default function UserDashboard({ userId }: { userId: string }) {
             <Activity className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{stats?.totalVolume || 0}</div>
+            <div className='text-2xl font-bold'>
+              {isLoadingStats ? <Skeleton className="h-8 w-16" /> : stats?.totalVolume || 0}
+            </div>
             <p className='text-xs text-muted-foreground'>Bulan ini</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
-            <CardTitle className='text-sm font-medium'>Tugas Pending</CardTitle>
-            <Clock className='h-4 w-4 text-muted-foreground' />
+            <CardTitle className='text-sm font-medium'>Selesai Bulan Ini</CardTitle>
+            <Target className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{stats?.pendingCount || 0}</div>
+            <div className='text-2xl font-bold'>
+              {isLoadingStats ? <Skeleton className="h-8 w-16" /> : stats?.doneCount || 0}
+            </div>
             <p className='text-xs text-muted-foreground'>
-              Menunggu diselesaikan (keseluruhan)
+              Aktivitas selesai bulan ini
             </p>
           </CardContent>
         </Card>
@@ -158,7 +168,9 @@ export default function UserDashboard({ userId }: { userId: string }) {
             <Target className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{stats?.avgTasks || '0.0'}</div>
+            <div className='text-2xl font-bold'>
+              {isLoadingStats ? <Skeleton className="h-8 w-16" /> : stats?.avgTasks || '0.0'}
+            </div>
             <p className='text-xs text-muted-foreground'>
               Per hari (Bulan ini)
             </p>
@@ -166,74 +178,93 @@ export default function UserDashboard({ userId }: { userId: string }) {
         </Card>
       </div>
 
-      {/* Middle Row: Heatmap */}
-      <Card className='overflow-hidden'>
-        <CardHeader>
-          <CardTitle>Aktivitas Setahun Terakhir</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='w-full'>
-            <ActivityHeatmap data={heatmapData || {}} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Bottom Row: Heatmap + Tugas Hari Ini side by side */}
+      <div className='grid gap-4 lg:grid-cols-[auto_1fr]'>
 
-      {/* Bottom Row: Tugas Hari Ini */}
-      <Card>
-        <CardHeader className='flex flex-row items-center justify-between'>
-          <CardTitle>Daftar Tugas Hari Ini</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='overflow-x-auto'>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Deskripsi</TableHead>
-                  <TableHead>Jam</TableHead>
-                  <TableHead>Volume</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {todayTasks?.length === 0 ? (
+        {/* Heatmap */}
+        <Card className='overflow-hidden lg:w-fit'>
+          <CardHeader className='pb-2'>
+            <CardTitle className='text-sm font-medium'>Aktivitas 3 Bulan Terakhir</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingHeatmap ? (
+              <Skeleton className='h-[120px] w-[280px]' />
+            ) : (
+              <ActivityHeatmap data={heatmapData || {}} startDate={heatmapStart} />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tugas Hari Ini */}
+        <Card className='min-w-0'>
+          <CardHeader className='flex flex-row items-center justify-between'>
+            <CardTitle>Daftar Tugas Hari Ini</CardTitle>
+            <Link to='/activities' className='text-sm font-medium hover:underline'>
+              Aktivitas Saya &rarr;
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className='overflow-x-auto'>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className='py-6 text-center text-muted-foreground'
-                    >
-                      Belum menginput aktivitas hari ini.
-                    </TableCell>
+                    <TableHead>Deskripsi</TableHead>
+                    <TableHead>Jam</TableHead>
+                    <TableHead>Volume</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ) : (
-                  todayTasks?.map((task) => (
-                    <TableRow key={task.id}>
-                      <TableCell className='font-medium'>
-                        {task.description}
-                      </TableCell>
-                      <TableCell>
-                        {task.start_time?.slice(0, 5) || '-'} s/d{' '}
-                        {task.end_time?.slice(0, 5) || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {task.volume} {task.unit?.name}
-                      </TableCell>
-                      <TableCell>
-                        {task.is_done ? (
-                          <Badge variant='default' className='bg-green-500'>
-                            Selesai
-                          </Badge>
-                        ) : (
-                          <Badge variant='secondary'>Pending</Badge>
-                        )}
+                </TableHeader>
+                <TableBody>
+                  {isLoadingTasks ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : todayTasks?.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className='py-6 text-center text-muted-foreground'
+                      >
+                        Belum menginput aktivitas hari ini.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : (
+                    todayTasks?.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell className='font-medium'>
+                          {task.description}
+                        </TableCell>
+                        <TableCell>
+                          {task.start_time?.slice(0, 5) || '-'} s/d{' '}
+                          {task.end_time?.slice(0, 5) || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {task.volume} {task.unit?.name}
+                        </TableCell>
+                        <TableCell>
+                          {task.is_done ? (
+                            <Badge variant='default' className='bg-green-500'>
+                              Selesai
+                            </Badge>
+                          ) : (
+                            <Badge variant='secondary'>Pending</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
+
   )
 }
