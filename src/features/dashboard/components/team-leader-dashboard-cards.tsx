@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { User, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { MemberActivityDialog } from './member-activity-dialog'
 interface MemberProfile {
   name?: string
   email?: string
-  users_roles?: Array<{ roles?: { name?: string } }>
+  users_roles?: Array<{ roles?: Array<{ name?: string }> }>
 }
 
 interface TeamMember {
