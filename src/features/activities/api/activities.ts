@@ -9,7 +9,12 @@ export async function getActivities(userId?: string): Promise<Activity[]> {
   let query = supabase
     .from('activities')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('date', {
+      ascending: false,
+    })
+    .order('end_time', {
+      ascending: false,
+    })
 
   if (userId) {
     query = query.eq('user_id', userId)

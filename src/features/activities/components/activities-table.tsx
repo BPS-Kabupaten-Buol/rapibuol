@@ -21,10 +21,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { LayoutGrid, Table as TableIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -33,17 +36,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { LayoutGrid, Table as TableIcon } from 'lucide-react'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { type Activity } from '../data/schema'
-import { activitiesColumns } from './activities-columns'
 import { ActivitiesCards } from './activities-cards'
+import { activitiesColumns } from './activities-columns'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const route = getRouteApi('/_authenticated/activities/')
 
@@ -92,14 +92,12 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   const isMobile = useIsMobile()
 
   // View mode state - default is card for mobile, table for desktop
-  const [viewMode, setViewMode] = useState<'table' | 'card'>(
-    isMobile ? 'card' : 'table'
-  )
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('card')
 
-  // Sync viewMode with mobile detection on initial mount
-  useEffect(() => {
-    setViewMode(isMobile ? 'card' : 'table')
-  }, [isMobile])
+  // // Sync viewMode with mobile detection on initial mount
+  // useEffect(() => {
+  //   setViewMode(isMobile ? 'card' : 'table')
+  // }, [isMobile])
 
   // Manual date range state (overrides preset when filled)
   const [startDate, setStartDate] = useState('')
@@ -238,10 +236,18 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
             className='h-8'
           >
             <TabsList className='h-8 p-1'>
-              <TabsTrigger value='table' className='h-6 px-2' title='Tampilan Tabel'>
+              <TabsTrigger
+                value='table'
+                className='h-6 px-2'
+                title='Tampilan Tabel'
+              >
                 <TableIcon className='h-3.5 w-3.5' />
               </TabsTrigger>
-              <TabsTrigger value='card' className='h-6 px-2' title='Tampilan Kartu'>
+              <TabsTrigger
+                value='card'
+                className='h-6 px-2'
+                title='Tampilan Kartu'
+              >
                 <LayoutGrid className='h-3.5 w-3.5' />
               </TabsTrigger>
             </TabsList>
@@ -339,14 +345,30 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-4' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-[120px]' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-[200px]' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-16' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-16' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-24' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='h-4 w-10' />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className='ml-auto h-8 w-8' />
+                    </TableCell>
                   </TableRow>
                 ))
               ) : table.getRowModel().rows?.length ? (
