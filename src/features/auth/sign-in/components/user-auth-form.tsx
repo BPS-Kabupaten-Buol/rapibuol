@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/auth-provider'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -18,6 +19,12 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+
+const REMEMBER_EMAIL_KEY = 'rapibuol_remember_email'
+
+const getSavedEmail = () => localStorage.getItem(REMEMBER_EMAIL_KEY) || ''
+const isRememberMeEnabled = () =>
+  localStorage.getItem(REMEMBER_EMAIL_KEY) !== null
 
 const formSchema = z.object({
   email: z.email({
@@ -39,19 +46,26 @@ export function UserAuthForm({
   ...props
 }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(isRememberMeEnabled)
   const navigate = useNavigate()
   const { signIn } = useAuth()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      email: getSavedEmail(),
       password: '',
     },
   })
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
+
+    if (rememberMe) {
+      localStorage.setItem(REMEMBER_EMAIL_KEY, data.email)
+    } else {
+      localStorage.removeItem(REMEMBER_EMAIL_KEY)
+    }
 
     const { error } = await signIn(data.email, data.password)
 
@@ -106,6 +120,19 @@ export function UserAuthForm({
             </FormItem>
           )}
         />
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='remember-me'
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked === true)}
+          />
+          <label
+            htmlFor='remember-me'
+            className='text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+          >
+            Remember me
+          </label>
+        </div>
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
           Sign in
