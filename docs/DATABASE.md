@@ -14,6 +14,7 @@ CREATE TABLE public.activities (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone,
   user_id uuid NOT NULL,
+  end_date date,
   CONSTRAINT activities_pkey PRIMARY KEY (id),
   CONSTRAINT activities_unit_fkey FOREIGN KEY (unit) REFERENCES public.unit_measurement(id),
   CONSTRAINT activities_assignor_fkey FOREIGN KEY (assignor) REFERENCES public.teams(id),

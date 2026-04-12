@@ -4,6 +4,7 @@ export const activitySchema = z.object({
   id: z.number(),
   description: z.string(),
   date: z.string(),
+  end_date: z.string().nullable(),
   start_time: z.string().nullable(),
   end_time: z.string().nullable(),
   volume: z.number(),
@@ -21,6 +22,7 @@ export type Activity = z.infer<typeof activitySchema>
 export type CreateActivityInput = {
   description: string
   date: string
+  end_date: string | null
   start_time: string | null
   end_time: string | null
   volume: number

@@ -180,6 +180,20 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
                   })}
                 </span>
 
+                {/* End Date */}
+                {activity.end_date && (
+                  <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'>
+                    <Calendar className='h-3 w-3' />
+                    s/d{' '}
+                    {new Date(activity.end_date).toLocaleDateString('id-ID', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                )}
+
                 {/* Time */}
                 <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums'>
                   <Clock className='h-3 w-3' />

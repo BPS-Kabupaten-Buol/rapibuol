@@ -43,6 +43,7 @@ type ActivityMutateDrawerProps = {
 const formSchema = z.object({
   description: z.string().min(1, 'Deskripsi harus diisi.'),
   date: z.date(),
+  end_date: z.date().optional(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   volume: z.number().min(0, 'Volume minimal 0'),
@@ -82,9 +83,15 @@ export function ActivitiesMutateDrawer({
         await queryClient.cancelQueries({ queryKey: ['stats', user.id] })
       }
 
-      const previousActivities = user ? queryClient.getQueryData(['activities', user.id]) : undefined
-      const previousTodayTasks = user ? queryClient.getQueryData(['tasks_today', user.id]) : undefined
-      const previousStats = user ? queryClient.getQueryData(['stats', user.id]) : undefined
+      const previousActivities = user
+        ? queryClient.getQueryData(['activities', user.id])
+        : undefined
+      const previousTodayTasks = user
+        ? queryClient.getQueryData(['tasks_today', user.id])
+        : undefined
+      const previousStats = user
+        ? queryClient.getQueryData(['stats', user.id])
+        : undefined
 
       const optimisticActivity = {
         id: Math.random(),
@@ -108,7 +115,7 @@ export function ActivitiesMutateDrawer({
             ...(old || []),
           ])
         }
-        
+
         const isThisMonth = newActivity.date.startsWith(today.substring(0, 7))
         if (isThisMonth) {
           queryClient.setQueryData(['stats', user.id], (old: any) => {
@@ -116,7 +123,9 @@ export function ActivitiesMutateDrawer({
             return {
               ...old,
               totalVolume: (old.totalVolume || 0) + (newActivity.volume || 0),
-              pendingCount: newActivity.is_done ? old.pendingCount : (old.pendingCount || 0) + 1,
+              pendingCount: newActivity.is_done
+                ? old.pendingCount
+                : (old.pendingCount || 0) + 1,
             }
           })
         }
@@ -126,10 +135,16 @@ export function ActivitiesMutateDrawer({
     },
     onError: (_err, _newActivity, context) => {
       if (context?.previousActivities && user) {
-        queryClient.setQueryData(['activities', user.id], context.previousActivities)
+        queryClient.setQueryData(
+          ['activities', user.id],
+          context.previousActivities
+        )
       }
       if (context?.previousTodayTasks && user) {
-        queryClient.setQueryData(['tasks_today', user.id], context.previousTodayTasks)
+        queryClient.setQueryData(
+          ['tasks_today', user.id],
+          context.previousTodayTasks
+        )
       }
       if (context?.previousStats && user) {
         queryClient.setQueryData(['stats', user.id], context.previousStats)
@@ -170,6 +185,9 @@ export function ActivitiesMutateDrawer({
       ? {
           description: currentRow.description,
           date: new Date(currentRow.date),
+          end_date: currentRow.end_date
+            ? new Date(currentRow.end_date)
+            : undefined,
           start_time: currentRow.start_time ?? '',
           end_time: currentRow.end_time ?? '',
           volume: currentRow.volume,
@@ -181,6 +199,7 @@ export function ActivitiesMutateDrawer({
       : {
           description: '',
           date: new Date(),
+          end_date: undefined,
           start_time: '',
           end_time: '',
           volume: 0,
@@ -200,6 +219,7 @@ export function ActivitiesMutateDrawer({
     const payload = {
       description: data.description,
       date: format(data.date, 'yyyy-MM-dd'),
+      end_date: data.end_date ? format(data.end_date, 'yyyy-MM-dd') : null,
       start_time: data.start_time || null,
       end_time: data.end_time || null,
       volume: data.volume,
@@ -269,6 +289,21 @@ export function ActivitiesMutateDrawer({
               render={({ field }) => (
                 <FormItem className='flex flex-col'>
                   <FormLabel>Tanggal</FormLabel>
+                  <DatePicker
+                    selected={field.value}
+                    onSelect={field.onChange}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='end_date'
+              render={({ field }) => (
+                <FormItem className='flex flex-col'>
+                  <FormLabel>Tanggal Berakhir (Opsional)</FormLabel>
                   <DatePicker
                     selected={field.value}
                     onSelect={field.onChange}

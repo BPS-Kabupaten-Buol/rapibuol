@@ -6,6 +6,7 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  format,
 } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
@@ -21,7 +22,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { Download, LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { type DateRange } from 'react-day-picker'
+import { exportToXlsx } from '@/lib/export'
 import { cn } from '@/lib/utils'
 // import { useIsMobile } from '@/hooks/use-mobile'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
@@ -38,12 +41,30 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { DateRangePicker } from '@/components/date-range-picker'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
 import { type Activity } from '../data/schema'
 import { ActivitiesCards } from './activities-cards'
 import { activitiesColumns } from './activities-columns'
 import { DataTableBulkActions } from './data-table-bulk-actions'
+
+const EXPORT_COLUMNS = [
+  { key: 'description' as const, header: 'Deskripsi' },
+  { key: 'date' as const, header: 'Tanggal' },
+  { key: 'end_date' as const, header: 'Tanggal Berakhir' },
+  { key: 'start_time' as const, header: 'Jam Mulai' },
+  { key: 'end_time' as const, header: 'Jam Selesai' },
+  { key: 'volume' as const, header: 'Volume' },
+  { key: 'unit_name' as const, header: 'Satuan' },
+  { key: 'team_name' as const, header: 'Tim' },
+  { key: 'link_bukti_dukung' as const, header: 'Link Bukti Dukung' },
+  { key: 'is_done' as const, header: 'Status' },
+]
+
+function getStatusLabel(isDone: boolean): string {
+  return isDone ? 'Selesai' : 'Pending'
+}
 
 const route = getRouteApi('/_authenticated/activities/')
 
@@ -100,28 +121,22 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   // }, [isMobile])
 
   // Manual date range state (overrides preset when filled)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
   const handleFilterChange = useCallback((filter: DateFilter) => {
     setDateFilter(filter)
-    setStartDate('')
-    setEndDate('')
+    setDateRange(undefined)
   }, [])
 
   // Filter data: manual range takes priority over preset
   const filteredData = useMemo(() => {
-    if (startDate || endDate) {
+    if (dateRange?.from) {
+      const from = dateRange.from
+      const to = dateRange.to
       return data.filter((task) => {
         const taskDate = new Date(task.date)
-        if (startDate && !endDate)
-          return taskDate >= startOfDay(new Date(startDate))
-        if (!startDate && endDate)
-          return taskDate <= endOfDay(new Date(endDate))
-        return (
-          taskDate >= startOfDay(new Date(startDate)) &&
-          taskDate <= endOfDay(new Date(endDate))
-        )
+        if (!to) return taskDate >= startOfDay(from)
+        return taskDate >= startOfDay(from) && taskDate <= endOfDay(to)
       })
     }
     const { start, end } = getDateRange(dateFilter)
@@ -129,7 +144,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
       const taskDate = new Date(task.date)
       return taskDate >= start && taskDate <= end
     })
-  }, [data, dateFilter, startDate, endDate])
+  }, [data, dateFilter, dateRange])
 
   // Local UI-only states
   const [rowSelection, setRowSelection] = useState({})
@@ -230,28 +245,53 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
           ]
         }
         viewSlot={
-          <Tabs
-            value={viewMode}
-            onValueChange={(v) => setViewMode(v as 'table' | 'card')}
-            className='h-8'
-          >
-            <TabsList className='h-8 p-1'>
-              <TabsTrigger
-                value='table'
-                className='h-6 px-2'
-                title='Tampilan Tabel'
-              >
-                <TableIcon className='h-3.5 w-3.5' />
-              </TabsTrigger>
-              <TabsTrigger
-                value='card'
-                className='h-6 px-2'
-                title='Tampilan Kartu'
-              >
-                <LayoutGrid className='h-3.5 w-3.5' />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-8 gap-1.5'
+              onClick={() => {
+                const exportData = filteredData.map((a) => ({
+                  ...a,
+                  is_done: getStatusLabel(a.is_done),
+                  unit_name: units.find((u) => u.id === a.unit)?.name ?? '-',
+                  team_name:
+                    teams.find((t) => t.id === a.assignor)?.name ?? '-',
+                }))
+                exportToXlsx(
+                  exportData,
+                  `activities-${format(new Date(), 'yyyy-MM-dd')}`,
+                  [...EXPORT_COLUMNS]
+                )
+              }}
+              disabled={filteredData.length === 0}
+            >
+              <Download className='h-3.5 w-3.5' />
+              <span className='max-sm:hidden'>Export</span>
+            </Button>
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as 'table' | 'card')}
+              className='h-8'
+            >
+              <TabsList className='h-8 p-1'>
+                <TabsTrigger
+                  value='card'
+                  className='h-6 px-2'
+                  title='Tampilan Kartu'
+                >
+                  <LayoutGrid className='h-3.5 w-3.5' />
+                </TabsTrigger>
+                <TabsTrigger
+                  value='table'
+                  className='h-6 px-2'
+                  title='Tampilan Tabel'
+                >
+                  <TableIcon className='h-3.5 w-3.5' />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         }
         dateRangeSlot={
           <div className='flex flex-wrap items-center gap-2'>
@@ -261,7 +301,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
                   <Button
                     key={filter}
                     variant={
-                      dateFilter === filter && !startDate && !endDate
+                      dateFilter === filter && !dateRange?.from
                         ? 'default'
                         : 'ghost'
                     }
@@ -270,7 +310,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
                     onClick={() => handleFilterChange(filter)}
                   >
                     {DATE_FILTER_LABELS[filter]}
-                    {dateFilter === filter && !startDate && !endDate && (
+                    {dateFilter === filter && !dateRange?.from && (
                       <Badge
                         variant='secondary'
                         className='ml-1.5 h-4 px-1 text-[10px]'
@@ -282,34 +322,28 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
                 )
               )}
             </div>
-            <div className='flex items-center gap-2'>
-              <input
-                type='date'
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className='h-8 w-[140px] rounded-md border bg-background px-2 text-sm'
-              />
-              <span className='text-muted-foreground'>—</span>
-              <input
-                type='date'
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className='h-8 w-[140px] rounded-md border bg-background px-2 text-sm'
-              />
-              {(startDate || endDate) && (
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  className='h-8 px-2 text-xs text-muted-foreground'
-                  onClick={() => {
-                    setStartDate('')
-                    setEndDate('')
-                  }}
-                >
-                  Atur Ulang
-                </Button>
-              )}
-            </div>
+            <DateRangePicker
+              date={dateRange}
+              onSelect={(range) => {
+                setDateRange(range)
+                if (range?.from) {
+                  setDateFilter('today')
+                }
+              }}
+            />
+            {dateRange?.from && (
+              <Button
+                variant='ghost'
+                size='sm'
+                className='h-8 px-2 text-xs text-muted-foreground'
+                onClick={() => {
+                  setDateRange(undefined)
+                  setDateFilter('today')
+                }}
+              >
+                Atur Ulang
+              </Button>
+            )}
           </div>
         }
       />
