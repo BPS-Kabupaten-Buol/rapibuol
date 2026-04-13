@@ -14,8 +14,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // Use autoUpdate untuk otomatis check dan update PWA
       registerType: 'autoUpdate',
+      // Inject service worker registration script otomatis
       injectRegister: 'auto',
+      // File untuk custom service worker logic
+      selfDestroying: true,
       includeAssets: [
         'images/favicon.svg',
         'images/favicon.png',
@@ -57,8 +61,13 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Glob patterns untuk files yang di-precache
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Ignore certain patterns
+        globIgnores: ['**/node_modules/**/*', '.map'],
+        // Runtime caching strategies
         runtimeCaching: [
+          // Google Fonts CSS
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -66,13 +75,14 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
               },
               cacheableResponse: {
                 statuses: [0, 200],
               },
             },
           },
+          // Google Fonts CDN
           {
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: 'CacheFirst',
@@ -80,7 +90,38 @@ export default defineConfig({
               cacheName: 'gstatic-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // API calls - NetworkFirst untuk fresh data
+          {
+            urlPattern: /^https:\/\/.*\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 5 * 60, // 5 minutes
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Images - CacheFirst untuk performance
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
               cacheableResponse: {
                 statuses: [0, 200],
@@ -88,6 +129,17 @@ export default defineConfig({
             },
           },
         ],
+        // Client side cache control
+        clientsClaim: true,
+        skipWaiting: true,
+        // Maksimal file size untuk precache
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+      },
+      // DevOptions untuk development
+      devOptions: {
+        enabled: false,
+        suppressWarnings: true,
+        navigateFallback: 'index.html',
       },
     }),
   ],
