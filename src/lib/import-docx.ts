@@ -247,8 +247,13 @@ export async function parseDocxFromBuffer(
       htmlContent = mammothResult.value
 
       if (mammothResult.messages && mammothResult.messages.length > 0) {
+        const ignoredWarnings = ['w:tblPrEx', 'tblPrEx']
         const warnings = mammothResult.messages
-          .filter((m) => m.type === 'warning')
+          .filter(
+            (m) =>
+              m.type === 'warning' &&
+              !ignoredWarnings.some((w) => m.message.includes(w))
+          )
           .map((m) => m.message)
         if (warnings.length > 0) {
           result.errors.push(...warnings)
