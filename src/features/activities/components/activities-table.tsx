@@ -245,7 +245,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
           ]
         }
         viewSlot={
-          <div className='flex items-center gap-2'>
+          <div className='flex min-w-0 items-center gap-2'>
             <Button
               variant='outline'
               size='sm'
@@ -294,7 +294,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
           </div>
         }
         dateRangeSlot={
-          <div className='flex flex-wrap items-center gap-2'>
+          <div className='flex min-w-0 flex-wrap items-center gap-2 overflow-x-auto'>
             <div className='flex items-center gap-1 rounded-lg border p-1'>
               {(Object.keys(DATE_FILTER_LABELS) as DateFilter[]).map(
                 (filter) => (
@@ -348,8 +348,8 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
         }
       />
       {viewMode === 'table' ? (
-        <div className='overflow-hidden rounded-md border'>
-          <Table className='min-w-xl'>
+        <div className='overflow-x-auto rounded-md border'>
+          <Table className='min-w-[600px]'>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>

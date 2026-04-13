@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { ConfigDrawer } from '@/components/config-drawer'
+import { useAuth } from '@/context/auth-provider'
 import { Button } from '@/components/ui/button'
+import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -16,13 +17,11 @@ import {
 } from './components/activities-provider'
 import { ActivitiesTable } from './components/activities-table'
 
-import { useAuth } from '@/context/auth-provider'
-
 function ActivitiesFAB() {
   const { setOpen } = useActivities()
   return (
     <Button
-      className='fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg sm:hidden'
+      className='fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full shadow-lg sm:hidden'
       onClick={() => setOpen('create')}
       size='icon'
       aria-label='Tambah Aktivitas Baru'
@@ -52,8 +51,8 @@ export function Activities() {
       </Header>
 
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
-        <div className='flex flex-wrap items-end justify-between gap-2'>
-          <div>
+        <div className='flex min-w-0 flex-wrap items-end justify-between gap-2'>
+          <div className='min-w-0'>
             <h2 className='text-2xl font-bold tracking-tight'>Aktivitas</h2>
             <p className='text-muted-foreground'>Daftar aktivitas Anda.</p>
           </div>

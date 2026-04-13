@@ -279,7 +279,7 @@ export function ActivitiesImportDialog({
           </div>
         )}
 
-        <div className='rounded-md border'>
+        <div className='w-full overflow-auto rounded-md border'>
           <Table>
             <TableHeader>
               <TableRow>
@@ -315,7 +315,7 @@ export function ActivitiesImportDialog({
                     {row.endTime ? ` - ${row.endTime}` : ''}
                   </TableCell>
                   <TableCell
-                    className='max-w-50 truncate'
+                    className='max-w-[150px] truncate sm:max-w-[250px]'
                     title={row.description}
                   >
                     {row.description}
@@ -386,7 +386,7 @@ export function ActivitiesImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className='gap-2 sm:max-w-2xl'>
+      <DialogContent className='max-w-md gap-2 overflow-hidden sm:max-w-2xl'>
         {isParsing && (
           <div className='flex flex-col items-center justify-center py-8'>
             <Loader2 className='h-8 w-8 animate-spin text-primary' />
