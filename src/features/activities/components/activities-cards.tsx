@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Circle,
   Calendar,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -143,9 +144,12 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
         const activity = row.original
         const isDone = activity.is_done
         const duration = calcDuration(activity.start_time, activity.end_time)
-        const unitName = units.find((u) => u.id === activity.unit)?.name ?? ''
-        const teamName =
-          teams.find((t) => t.id === activity.assignor)?.name ?? '-'
+        const unitName = activity.unit
+          ? (units.find((u) => u.id === activity.unit)?.name ?? '-')
+          : '-'
+        const teamName = activity.assignor
+          ? (teams.find((t) => t.id === activity.assignor)?.name ?? '-')
+          : '-'
 
         return (
           <div
@@ -231,14 +235,18 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
 
               {/* Metadata */}
               <div className='flex flex-wrap items-center gap-x-5 gap-y-1 pt-0.5'>
-                <span className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
-                  <Package className='h-3.5 w-3.5 text-muted-foreground/50' />
-                  {activity.volume} {unitName}
-                </span>
-                <span className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
-                  <Users className='h-3.5 w-3.5 text-muted-foreground/50' />
-                  {teamName}
-                </span>
+                {activity.volume !== null && (
+                  <span className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
+                    <Package className='h-3.5 w-3.5 text-muted-foreground/50' />
+                    {activity.volume} {unitName}
+                  </span>
+                )}
+                {activity.assignor !== null && (
+                  <span className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
+                    <Users className='h-3.5 w-3.5 text-muted-foreground/50' />
+                    {teamName}
+                  </span>
+                )}
                 {activity.link_bukti_dukung && (
                   <a
                     href={activity.link_bukti_dukung}
@@ -249,6 +257,18 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
                   >
                     <Link2 className='h-3.5 w-3.5' />
                     Bukti Dukung
+                  </a>
+                )}
+                {activity.coordinates && (
+                  <a
+                    href={`https://www.google.com/maps/search/${activity.coordinates}`}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='inline-flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 hover:underline'
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MapPin className='h-3.5 w-3.5' />
+                    Lokasi
                   </a>
                 )}
               </div>

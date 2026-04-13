@@ -7,14 +7,15 @@ export const activitySchema = z.object({
   end_date: z.string().nullable(),
   start_time: z.string().nullable(),
   end_time: z.string().nullable(),
-  volume: z.number(),
-  unit: z.union([z.number(), z.any()]),
-  assignor: z.union([z.number(), z.any()]),
+  volume: z.number().nullable(),
+  unit: z.number().nullable(),
+  assignor: z.number().nullable(),
   is_done: z.boolean(),
-  created_at: z.string().optional(),
-  updated_at: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string().nullable(),
   user_id: z.string(),
   link_bukti_dukung: z.string().nullable(),
+  coordinates: z.string().nullable(),
 })
 
 export type Activity = z.infer<typeof activitySchema>
@@ -25,12 +26,13 @@ export type CreateActivityInput = {
   end_date: string | null
   start_time: string | null
   end_time: string | null
-  volume: number
-  unit: number
-  assignor: number
+  volume: number | null
+  unit: number | null
+  assignor: number | null
   is_done: boolean
   user_id: string
   link_bukti_dukung: string | null
+  coordinates: string | null
 }
 
 export type UpdateActivityInput = Partial<CreateActivityInput>

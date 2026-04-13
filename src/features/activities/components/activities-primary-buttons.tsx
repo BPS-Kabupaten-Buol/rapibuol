@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useActivities } from './activities-provider'
 
@@ -6,13 +6,13 @@ export function ActivitiesPrimaryButtons() {
   const { setOpen } = useActivities()
   return (
     <div className='flex gap-2'>
-      {/* <Button
+      <Button
         variant='outline'
         className='space-x-1'
         onClick={() => setOpen('import')}
       >
-        <span>Impor</span> <Download size={18} />
-      </Button> */}
+        <span>Impor</span> <Upload size={18} />
+      </Button>
       <Button className='space-x-1' onClick={() => setOpen('create')}>
         <span>Buat</span> <Plus size={18} />
       </Button>

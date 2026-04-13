@@ -46,11 +46,12 @@ const formSchema = z.object({
   end_date: z.date().optional(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
-  volume: z.number().min(0, 'Volume minimal 0'),
-  unit: z.number().min(1, 'Silakan pilih satuan.'),
-  assignor: z.number().min(1, 'Silakan pilih tim.'),
+  volume: z.number().min(0, 'Volume minimal 0').nullable().optional(),
+  unit: z.number().min(1, 'Silakan pilih satuan.').nullable().optional(),
+  assignor: z.number().nullable().optional(),
   is_done: z.boolean(),
   link_bukti_dukung: z.string().optional(),
+  coordinates: z.string().optional(),
 })
 
 type ActivityForm = z.infer<typeof formSchema>
@@ -190,11 +191,12 @@ export function ActivitiesMutateDrawer({
             : undefined,
           start_time: currentRow.start_time ?? '',
           end_time: currentRow.end_time ?? '',
-          volume: currentRow.volume,
-          unit: currentRow.unit,
-          assignor: currentRow.assignor,
+          volume: currentRow.volume ?? null,
+          unit: currentRow.unit ?? null,
+          assignor: currentRow.assignor ?? null,
           is_done: currentRow.is_done,
           link_bukti_dukung: currentRow.link_bukti_dukung ?? '',
+          coordinates: currentRow.coordinates ?? '',
         }
       : {
           description: '',
@@ -202,11 +204,12 @@ export function ActivitiesMutateDrawer({
           end_date: undefined,
           start_time: '',
           end_time: '',
-          volume: 0,
-          unit: 0,
-          assignor: 0,
+          volume: null,
+          unit: null,
+          assignor: null,
           is_done: false,
           link_bukti_dukung: '',
+          coordinates: '',
         },
   })
 
@@ -222,10 +225,11 @@ export function ActivitiesMutateDrawer({
       end_date: data.end_date ? format(data.end_date, 'yyyy-MM-dd') : null,
       start_time: data.start_time || null,
       end_time: data.end_time || null,
-      volume: data.volume,
-      unit: data.unit,
-      assignor: data.assignor,
+      volume: data.volume || null,
+      unit: data.unit || null,
+      assignor: data.assignor || null,
       link_bukti_dukung: data.link_bukti_dukung || null,
+      coordinates: data.coordinates || null,
       is_done: data.is_done,
       user_id: user.id,
     }
@@ -347,14 +351,15 @@ export function ActivitiesMutateDrawer({
               name='volume'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Volume</FormLabel>
+                  <FormLabel>Volume (Opsional)</FormLabel>
                   <FormControl>
                     <Input
                       type='number'
                       {...field}
+                      value={field.value ?? ''}
                       onChange={(e) =>
                         field.onChange(
-                          e.target.value === '' ? '' : Number(e.target.value)
+                          e.target.value === '' ? null : Number(e.target.value)
                         )
                       }
                     />
@@ -369,7 +374,7 @@ export function ActivitiesMutateDrawer({
               name='unit'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Satuan</FormLabel>
+                  <FormLabel>Satuan (Opsional)</FormLabel>
                   {isLoadingUnits ? (
                     <div className='flex h-10 items-center justify-center'>
                       <Loader2 className='h-4 w-4 animate-spin' />
@@ -379,7 +384,9 @@ export function ActivitiesMutateDrawer({
                       defaultValue={
                         field.value ? String(field.value) : undefined
                       }
-                      onValueChange={(val) => field.onChange(Number(val))}
+                      onValueChange={(val) =>
+                        field.onChange(val ? Number(val) : null)
+                      }
                       placeholder='Pilih satuan'
                       items={units.map((u) => ({
                         label: u.name,
@@ -397,7 +404,7 @@ export function ActivitiesMutateDrawer({
               name='assignor'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tim Pemberi Tugas</FormLabel>
+                  <FormLabel>Tim Pemberi Tugas (Opsional)</FormLabel>
                   {isLoadingTeams ? (
                     <div className='flex h-10 items-center justify-center'>
                       <Loader2 className='h-4 w-4 animate-spin' />
@@ -407,7 +414,9 @@ export function ActivitiesMutateDrawer({
                       defaultValue={
                         field.value ? String(field.value) : undefined
                       }
-                      onValueChange={(val) => field.onChange(Number(val))}
+                      onValueChange={(val) =>
+                        field.onChange(val ? Number(val) : null)
+                      }
                       placeholder='Pilih tim'
                       items={teams.map((t) => ({
                         label: t.name,
@@ -430,6 +439,23 @@ export function ActivitiesMutateDrawer({
                     <Input
                       {...field}
                       placeholder='Masukkan link bukti dukung'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='coordinates'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Koordinat (Opsional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder='Masukkan koordinat (contoh: 1.1725404, 121.4214115)'
                     />
                   </FormControl>
                   <FormMessage />

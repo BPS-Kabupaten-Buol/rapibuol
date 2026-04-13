@@ -7,18 +7,20 @@ CREATE TABLE public.activities (
   date date NOT NULL,
   start_time time without time zone,
   end_time time without time zone,
-  volume smallint NOT NULL,
-  unit bigint NOT NULL,
-  assignor bigint NOT NULL,
+  volume smallint,
+  unit bigint,
+  assignor bigint,
   is_done boolean NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone,
   user_id uuid NOT NULL,
+  link_bukti_dukung text,
   end_date date,
+  coordinates text,
   CONSTRAINT activities_pkey PRIMARY KEY (id),
   CONSTRAINT activities_unit_fkey FOREIGN KEY (unit) REFERENCES public.unit_measurement(id),
-  CONSTRAINT activities_assignor_fkey FOREIGN KEY (assignor) REFERENCES public.teams(id),
-  CONSTRAINT activities_user_id_fkey1 FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+  CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT activities_assignor_fkey FOREIGN KEY (assignor) REFERENCES public.teams(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -26,7 +28,7 @@ CREATE TABLE public.profiles (
   name character varying NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.roles (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -65,6 +67,6 @@ CREATE TABLE public.users_teams (
   team_id bigint NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT users_teams_pkey PRIMARY KEY (id),
-  CONSTRAINT users_teams_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
-  CONSTRAINT users_teams_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+  CONSTRAINT users_teams_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT users_teams_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
 );

@@ -1,7 +1,6 @@
 import { format } from 'date-fns'
-import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, MapPin } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { type Team } from '@/features/teams/api/teams'
@@ -124,7 +123,7 @@ export const activitiesColumns = (
       thClassName: 'text-center',
     },
     cell: ({ row }) => (
-      <div className='text-center'>{row.getValue('volume')}</div>
+      <div className='text-center'>{row.getValue('volume') ?? '-'}</div>
     ),
   },
   {
@@ -136,7 +135,8 @@ export const activitiesColumns = (
       className: 'w-[120px]',
     },
     cell: ({ row }) => {
-      const unit = units.find((u) => u.id === row.getValue('unit'))
+      const unitId = row.getValue('unit')
+      const unit = unitId ? units.find((u) => u.id === unitId) : null
       return <div>{unit ? unit.name : '-'}</div>
     },
   },
@@ -200,14 +200,42 @@ export const activitiesColumns = (
       if (!url) return <div>-</div>
       return (
         <div className='text-left'>
-          <Link
-            className='hover:text-blue-500 hover:underline'
-            to={url}
+          <a
+            href={url}
             target='_blank'
+            rel='noreferrer'
+            className='hover:text-blue-500 hover:underline'
             title={url}
           >
             {truncateUrl(url)}
-          </Link>
+          </a>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'coordinates',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Koordinat' />
+    ),
+    meta: {
+      className: 'w-[140px]',
+    },
+    cell: ({ row }) => {
+      const coordinates = row.original.coordinates
+      if (!coordinates) return <div>-</div>
+      return (
+        <div className='text-left'>
+          <a
+            href={`https://www.google.com/maps/search/${coordinates}`}
+            target='_blank'
+            rel='noreferrer'
+            className='hover:text-blue-500 hover:underline'
+            title={coordinates}
+          >
+            <MapPin className='mr-1 inline h-4 w-4' />
+            {coordinates}
+          </a>
         </div>
       )
     },
