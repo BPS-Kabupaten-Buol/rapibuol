@@ -92,7 +92,7 @@ function CardActions({ activity }: { activity: Activity }) {
           {activity.is_done ? (
             <>
               <Circle className='mr-2 h-4 w-4 text-amber-500' />
-              Tandai Pending
+              Tandai Belum Selesai
             </>
           ) : (
             <>
@@ -224,7 +224,7 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
                   ) : (
                     <Clock3 className='h-3 w-3' />
                   )}
-                  {isDone ? 'Selesai' : 'Pending'}
+                  {isDone ? 'Selesai' : 'Belum Selesai'}
                 </span>
               </div>
 

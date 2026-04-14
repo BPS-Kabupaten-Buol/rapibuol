@@ -1,5 +1,12 @@
 import { useState, useMemo } from 'react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  startOfWeek,
+  endOfWeek,
+} from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { Activity, Users, Map, Clock } from 'lucide-react'
 import {
@@ -33,11 +40,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KepalaSatkerCards } from './kepala-satker-dashboard-cards'
 import { MemberActivityDialog } from './member-activity-dialog'
 
 export default function KepalaSatkerDashboard() {
   const [period] = useState<'month'>('month')
+  const [reportFilter, setReportFilter] = useState<'all' | 'sudah' | 'belum'>(
+    'all'
+  )
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')
@@ -76,10 +87,19 @@ export default function KepalaSatkerDashboard() {
     }
   )
 
-  // 3. Today's active users
-  const todayStr = format(new Date(), 'yyyy-MM-dd')
-  const activeUsersTodayList = allActivities.filter((a) => a.date === todayStr)
-  const activeUsersToday = new Set(activeUsersTodayList.map((a) => a.user_id))
+  // 3. This week's active users
+  const today = new Date()
+  const weekStartStr = format(
+    startOfWeek(today, { weekStartsOn: 1 }),
+    'yyyy-MM-dd'
+  )
+  const weekEndStr = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const activeUsersThisWeekList = allActivities.filter(
+    (a) => a.date >= weekStartStr && a.date <= weekEndStr
+  )
+  const activeUsersThisWeek = new Set(
+    activeUsersThisWeekList.map((a) => a.user_id)
+  )
 
   // 4. Transform data for Bar Chart (Tim teraktif)
   const teamStats = useMemo(() => {
@@ -126,11 +146,22 @@ export default function KepalaSatkerDashboard() {
 
   const complianceRate =
     allUsers.length > 0
-      ? Math.round((activeUsersToday.size / allUsers.length) * 100)
+      ? Math.round((activeUsersThisWeek.size / allUsers.length) * 100)
       : 0
   const totalOutput = allActivities.filter((a) => a.is_done).length
 
-  const missingReportUsers = allUsers.filter((u) => !activeUsersToday.has(u.id))
+  const missingReportUsers = allUsers.filter(
+    (u) => !activeUsersThisWeek.has(u.id)
+  )
+
+  const filteredUsersByReport = useMemo(() => {
+    if (reportFilter === 'sudah') {
+      return allUsers.filter((u) => activeUsersThisWeek.has(u.id))
+    } else if (reportFilter === 'belum') {
+      return allUsers.filter((u) => !activeUsersThisWeek.has(u.id))
+    }
+    return allUsers
+  }, [allUsers, activeUsersThisWeek, reportFilter])
 
   return (
     <div className='flex flex-col gap-6 p-1'>
@@ -162,7 +193,7 @@ export default function KepalaSatkerDashboard() {
         <Card className='col-span-1 border-l-4 border-l-green-500 md:col-span-1'>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
             <CardTitle className='text-sm font-medium'>
-              Kepatuhan Harian
+              Kepatuhan Mingguan
             </CardTitle>
             <Clock className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
@@ -175,7 +206,7 @@ export default function KepalaSatkerDashboard() {
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Pegawai Melapor Hari Ini
+              Pegawai Melapor Minggu Ini
             </p>
           </CardContent>
         </Card>
@@ -211,7 +242,7 @@ export default function KepalaSatkerDashboard() {
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Alpha / Belum Input Hari Ini
+              Alpha / Belum Input Minggu Ini
             </p>
           </CardContent>
         </Card>
@@ -300,9 +331,9 @@ export default function KepalaSatkerDashboard() {
       {/* Master Table Pegawai */}
       {isMobile ? (
         <KepalaSatkerCards
-          users={allUsers as any}
+          users={filteredUsersByReport as any}
           activities={allActivities}
-          activeUsersToday={activeUsersToday}
+          activeUsersThisWeek={activeUsersThisWeek}
           isLoading={isLoading}
         />
       ) : (
@@ -315,6 +346,21 @@ export default function KepalaSatkerDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Tabs
+              value={reportFilter}
+              onValueChange={(v) => setReportFilter(v as any)}
+              className='mb-4'
+            >
+              <TabsList>
+                <TabsTrigger value='all'>Semua ({allUsers.length})</TabsTrigger>
+                <TabsTrigger value='sudah'>
+                  Sudah Lapor ({activeUsersThisWeek.size})
+                </TabsTrigger>
+                <TabsTrigger value='belum'>
+                  Belum Lapor ({missingReportUsers.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -324,7 +370,7 @@ export default function KepalaSatkerDashboard() {
                     Aktivitas Bulan Ini
                   </TableHead>
                   <TableHead className='text-center'>
-                    Status Lapor Hari Ini
+                    Status Lapor Minggu Ini
                   </TableHead>
                   <TableHead className='text-right'>Aksi</TableHead>
                 </TableRow>
@@ -350,11 +396,11 @@ export default function KepalaSatkerDashboard() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : allUsers.map((u: any) => {
+                  : filteredUsersByReport.map((u: any) => {
                       const userActs = allActivities.filter(
                         (a) => a.user_id === u.id
                       )
-                      const hasReportedToday = activeUsersToday.has(u.id)
+                      const hasReportedThisWeek = activeUsersThisWeek.has(u.id)
                       const teamName = u.users_teams?.[0]?.teams?.name || '-'
 
                       return (
@@ -367,7 +413,7 @@ export default function KepalaSatkerDashboard() {
                             {userActs.length}
                           </TableCell>
                           <TableCell className='text-center'>
-                            {hasReportedToday ? (
+                            {hasReportedThisWeek ? (
                               <Badge variant='default' className='bg-green-500'>
                                 Sudah Lapor
                               </Badge>

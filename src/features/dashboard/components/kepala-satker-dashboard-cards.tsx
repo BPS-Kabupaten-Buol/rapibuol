@@ -33,14 +33,14 @@ interface UserProfile {
 interface KepalaSatkerCardsProps {
   users: UserProfile[]
   activities: Activity[]
-  activeUsersToday: Set<number>
+  activeUsersThisWeek: Set<number>
   isLoading: boolean
 }
 
 export function KepalaSatkerCards({
   users,
   activities,
-  activeUsersToday,
+  activeUsersThisWeek,
   isLoading,
 }: KepalaSatkerCardsProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,7 +56,7 @@ export function KepalaSatkerCards({
   }, [users, searchQuery])
 
   const reportedCount = filteredUsers.filter((u) =>
-    activeUsersToday.has(u.id)
+    activeUsersThisWeek.has(u.id)
   ).length
   const notReportedCount = filteredUsers.length - reportedCount
 
@@ -78,7 +78,7 @@ export function KepalaSatkerCards({
     <div className='flex flex-col gap-3'>
       <div className='rounded-xl border bg-card p-4 shadow-sm'>
         <h3 className='mb-3 font-semibold'>
-          Master Data Pantauan Pegawai Harian
+          Master Data Pantauan Pegawai Mingguan
         </h3>
 
         <div className='relative mb-3'>
@@ -111,7 +111,7 @@ export function KepalaSatkerCards({
         <div className='flex flex-col gap-2'>
           {filteredUsers.map((user) => {
             const userActs = activities.filter((a) => a.user_id === user.id)
-            const hasReportedToday = activeUsersToday.has(user.id)
+            const hasReportedThisWeek = activeUsersThisWeek.has(user.id)
             const teamName = user.users_teams?.[0]?.teams?.name || '-'
             const isExpanded = expandedCard === user.id
 
@@ -120,7 +120,7 @@ export function KepalaSatkerCards({
                 key={user.id}
                 className={cn(
                   'rounded-xl border bg-card shadow-sm transition-colors',
-                  hasReportedToday
+                  hasReportedThisWeek
                     ? 'border-emerald-200 dark:border-emerald-900'
                     : 'border-red-200 dark:border-red-900'
                 )}
@@ -132,7 +132,7 @@ export function KepalaSatkerCards({
                   <div
                     className={cn(
                       'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-                      hasReportedToday
+                      hasReportedThisWeek
                         ? 'bg-emerald-100 dark:bg-emerald-950/30'
                         : 'bg-red-100 dark:bg-red-950/30'
                     )}
@@ -140,7 +140,7 @@ export function KepalaSatkerCards({
                     <User
                       className={cn(
                         'h-5 w-5',
-                        hasReportedToday
+                        hasReportedThisWeek
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-red-600 dark:text-red-400'
                       )}
@@ -156,13 +156,13 @@ export function KepalaSatkerCards({
                   </div>
                   <div className='flex items-center gap-2'>
                     <Badge
-                      variant={hasReportedToday ? 'default' : 'destructive'}
+                      variant={hasReportedThisWeek ? 'default' : 'destructive'}
                       className={cn(
-                        hasReportedToday &&
+                        hasReportedThisWeek &&
                           'bg-emerald-500 hover:bg-emerald-600'
                       )}
                     >
-                      {hasReportedToday ? 'Sudah Lapor' : 'Belum Lapor'}
+                      {hasReportedThisWeek ? 'Sudah Lapor' : 'Belum Lapor'}
                     </Badge>
                     {isExpanded ? (
                       <ChevronUp className='h-4 w-4 text-muted-foreground' />

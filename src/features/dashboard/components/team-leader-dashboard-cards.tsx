@@ -172,7 +172,7 @@ export function TeamLeaderCards({
           {missingReportMembers.length === 0 ? (
             <div className='flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-400'>
               <CheckCircle2 className='h-4 w-4' />
-              Semua anggota sudah melapor hari ini!
+              Semua anggota sudah melapor minggu ini!
             </div>
           ) : (
             missingReportMembers.map((member) => {
@@ -190,7 +190,7 @@ export function TeamLeaderCards({
                       {profileData.name || 'Unknown'}
                     </p>
                     <span className='text-xs text-muted-foreground'>
-                      Belum input aktivitas hari ini
+                      Belum input aktivitas minggu ini
                     </span>
                   </div>
                   <Badge variant='destructive' className='shrink-0 text-xs'>
