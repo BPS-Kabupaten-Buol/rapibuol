@@ -1,4 +1,12 @@
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { useState } from 'react'
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  startOfWeek,
+  endOfWeek,
+} from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Activity, Target } from 'lucide-react'
@@ -6,6 +14,13 @@ import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -18,6 +33,7 @@ import {
 import { ActivityHeatmap } from './activity-heatmap'
 
 export default function UserDashboard({ userId }: { userId: string }) {
+  const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
   // 1. Fetch Profile & Role
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile', userId],
@@ -33,42 +49,64 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
   // 2. Fetch Stats
   const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['stats', userId],
+    queryKey: ['stats', userId, period],
     queryFn: async () => {
-      const start = startOfMonth(new Date()).toISOString()
-      const end = endOfMonth(new Date()).toISOString()
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const today = new Date()
+      let start: Date
+      let end: Date
 
-      const [todayCountRes, doneRes, totalRes] = await Promise.all([
-        // Jumlah kegiatan hari ini
+      if (period === 'today') {
+        start = today
+        end = today
+      } else if (period === 'week') {
+        start = startOfWeek(today, { weekStartsOn: 1 })
+        end = endOfWeek(today, { weekStartsOn: 1 })
+      } else {
+        start = startOfMonth(today)
+        end = endOfMonth(today)
+      }
+
+      const startStr = format(start, 'yyyy-MM-dd')
+      const endStr = format(end, 'yyyy-MM-dd')
+
+      const [periodCountRes, doneRes, totalRes] = await Promise.all([
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
           .eq('user_id', userId)
-          .eq('date', today),
-        // Tugas selesai bulan ini
+          .gte('date', startStr)
+          .lte('date', endStr),
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
           .eq('user_id', userId)
           .eq('is_done', true)
-          .gte('date', start)
-          .lte('date', end),
-        // Total tugas bulan ini (untuk rata-rata)
+          .gte('date', startStr)
+          .lte('date', endStr),
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
           .eq('user_id', userId)
-          .gte('date', start)
-          .lte('date', end),
+          .gte('date', startStr)
+          .lte('date', endStr),
       ])
 
-      const todayCount = todayCountRes.count || 0
+      const periodCount = periodCountRes.count || 0
       const doneCount = doneRes.count || 0
       const weekOfMonth = Math.ceil(new Date().getDate() / 7)
       const avgTasks = ((totalRes.count || 0) / weekOfMonth).toFixed(1)
 
-      return { todayCount, doneCount, avgTasks }
+      return {
+        periodCount,
+        doneCount,
+        avgTasks,
+        periodLabel:
+          period === 'today'
+            ? 'Hari Ini'
+            : period === 'week'
+              ? 'Minggu Ini'
+              : 'Bulan Ini',
+      }
     },
   })
 
@@ -92,16 +130,34 @@ export default function UserDashboard({ userId }: { userId: string }) {
     },
   })
 
-  // 4. Fetch Today's Tasks
-  const { data: todayTasks, isLoading: isLoadingTasks } = useQuery({
-    queryKey: ['tasks_today', userId],
+  // 4. Fetch Tasks based on period
+  const { data: periodTasks, isLoading: isLoadingTasks } = useQuery({
+    queryKey: ['tasks_period', userId, period],
     queryFn: async () => {
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const today = new Date()
+      let start: Date
+      let end: Date
+
+      if (period === 'today') {
+        start = today
+        end = today
+      } else if (period === 'week') {
+        start = startOfWeek(today, { weekStartsOn: 1 })
+        end = endOfWeek(today, { weekStartsOn: 1 })
+      } else {
+        start = startOfMonth(today)
+        end = endOfMonth(today)
+      }
+
+      const startStr = format(start, 'yyyy-MM-dd')
+      const endStr = format(end, 'yyyy-MM-dd')
+
       const { data } = await supabase
         .from('activities')
         .select(`*, unit:unit_measurement(name), assignor_team:teams(name)`)
         .eq('user_id', userId)
-        .eq('date', today)
+        .gte('date', startStr)
+        .lte('date', endStr)
       return data || []
     },
   })
@@ -134,9 +190,21 @@ export default function UserDashboard({ userId }: { userId: string }) {
             </div>
           </div>
         </div>
-        <Badge variant='default' className='bg-green-500 hover:bg-green-600'>
-          Aktif
-        </Badge>
+        <div className='flex items-center gap-4'>
+          <Badge variant='default' className='bg-green-500 hover:bg-green-600'>
+            Aktif
+          </Badge>
+          <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+            <SelectTrigger className='w-[140px]'>
+              <SelectValue placeholder='Periode' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='today'>Harian</SelectItem>
+              <SelectItem value='week'>Mingguan</SelectItem>
+              <SelectItem value='month'>Bulanan</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Top Row: Stats */}
@@ -153,17 +221,17 @@ export default function UserDashboard({ userId }: { userId: string }) {
               {isLoadingStats ? (
                 <Skeleton className='h-8 w-16' />
               ) : (
-                stats?.todayCount || 0
+                stats?.periodCount || 0
               )}
             </div>
-            <p className='text-xs text-muted-foreground'>Hari ini</p>
+            <p className='text-xs text-muted-foreground'>
+              {stats?.periodLabel}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
-            <CardTitle className='text-sm font-medium'>
-              Selesai Bulan Ini
-            </CardTitle>
+            <CardTitle className='text-sm font-medium'>Selesai</CardTitle>
             <Target className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
@@ -199,7 +267,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
         </Card>
       </div>
 
-      {/* Bottom Row: Heatmap + Tugas Hari Ini side by side */}
+      {/* Bottom Row: Heatmap + Tugas */}
       <div className='grid gap-4 lg:grid-cols-[auto_1fr]'>
         {/* Heatmap */}
         <Card className='overflow-hidden lg:w-fit'>
@@ -220,10 +288,12 @@ export default function UserDashboard({ userId }: { userId: string }) {
           </CardContent>
         </Card>
 
-        {/* Tugas Hari Ini */}
+        {/* Tugas Period */}
         <Card className='min-w-0'>
           <CardHeader className='flex flex-row items-center justify-between'>
-            <CardTitle>Daftar Tugas Hari Ini</CardTitle>
+            <CardTitle>
+              Daftar Tugas {stats?.periodLabel || 'Hari Ini'}
+            </CardTitle>
             <Link
               to='/activities'
               className='text-sm font-medium hover:underline'
@@ -260,17 +330,17 @@ export default function UserDashboard({ userId }: { userId: string }) {
                         </TableCell>
                       </TableRow>
                     ))
-                  ) : todayTasks?.length === 0 ? (
+                  ) : periodTasks?.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={4}
                         className='py-6 text-center text-muted-foreground'
                       >
-                        Belum menginput aktivitas hari ini.
+                        Belum ada aktivitas pada periode ini.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    todayTasks?.map((task) => (
+                    periodTasks?.map((task: any) => (
                       <TableRow key={task.id}>
                         <TableCell className='font-medium'>
                           {task.description}

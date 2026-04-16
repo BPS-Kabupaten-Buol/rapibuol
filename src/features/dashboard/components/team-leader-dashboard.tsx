@@ -1,5 +1,11 @@
 import { useState, useMemo } from 'react'
-import { format, startOfWeek, endOfWeek } from 'date-fns'
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { Users, AlertTriangle, Activity } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -75,18 +81,29 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
 
   const memberIds = useMemo(() => members.map((m) => m.user_id), [members])
 
-  // 2. Fetch This Week's Activities (always for current week, independent of period filter)
+  // 2. Fetch Activities based on period
   const { data: activities = [], isLoading: isLoadingActivities } = useQuery({
-    queryKey: ['team-activities-week-for-performa', teamId, memberIds],
+    queryKey: ['team-activities-period', teamId, memberIds, period],
     queryFn: async () => {
       if (!teamId || memberIds.length === 0) return []
 
       const today = new Date()
-      const startStr = format(
-        startOfWeek(today, { weekStartsOn: 1 }),
-        'yyyy-MM-dd'
-      )
-      const endStr = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+      let start: Date
+      let end: Date
+
+      if (period === 'today') {
+        start = today
+        end = today
+      } else if (period === 'week') {
+        start = startOfWeek(today, { weekStartsOn: 1 })
+        end = endOfWeek(today, { weekStartsOn: 1 })
+      } else {
+        start = startOfMonth(today)
+        end = endOfMonth(today)
+      }
+
+      const startStr = format(start, 'yyyy-MM-dd')
+      const endStr = format(end, 'yyyy-MM-dd')
 
       const { data } = await supabase
         .from('activities')
@@ -100,39 +117,50 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
     enabled: memberIds.length > 0,
   })
 
-  // 3. Fetch This Week's Activities (for "Belum Lapor" alert)
-  const { data: weekActivities = [], isLoading: isLoadingWeek } = useQuery({
-    queryKey: ['team-activities-week', teamId, memberIds],
-    queryFn: async () => {
-      if (!teamId || memberIds.length === 0) return []
-      const today = new Date()
-      const startStr = format(
-        startOfWeek(today, { weekStartsOn: 1 }),
-        'yyyy-MM-dd'
-      )
-      const endStr = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-      const { data } = await supabase
-        .from('activities')
-        .select('user_id')
-        .in('user_id', memberIds)
-        .gte('date', startStr)
-        .lte('date', endStr)
-      return data || []
-    },
-    enabled: memberIds.length > 0,
-  })
-
   // Calculations
-  const isLoading = isLoadingMembers || isLoadingActivities || isLoadingWeek
+  const isLoading = isLoadingMembers || isLoadingActivities
 
   const completedActivities = activities.filter((a) => a.is_done).length
 
-  // Members who have at least one activity recorded this week
-  const activeMembersThisWeek = new Set(weekActivities.map((a) => a.user_id))
+  const periodLabel =
+    period === 'today'
+      ? 'Hari Ini'
+      : period === 'week'
+        ? 'Minggu Ini'
+        : 'Bulan Ini'
 
-  // Who hasn't reported this week
+  // Calculate active members based on period
+  const getActiveMembersForPeriod = () => {
+    const today = new Date()
+    let start: Date
+    let end: Date
+
+    if (period === 'today') {
+      start = today
+      end = today
+    } else if (period === 'week') {
+      start = startOfWeek(today, { weekStartsOn: 1 })
+      end = endOfWeek(today, { weekStartsOn: 1 })
+    } else {
+      start = startOfMonth(today)
+      end = endOfMonth(today)
+    }
+
+    const startStr = format(start, 'yyyy-MM-dd')
+    const endStr = format(end, 'yyyy-MM-dd')
+
+    return new Set(
+      activities
+        .filter((a) => a.date >= startStr && a.date <= endStr)
+        .map((a) => a.user_id)
+    )
+  }
+
+  const activeMembersThisPeriod = getActiveMembersForPeriod()
+
+  // Who hasn't reported in this period
   const missingReportMembers = members.filter(
-    (m) => !activeMembersThisWeek.has(m.user_id)
+    (m) => !activeMembersThisPeriod.has(m.user_id)
   )
 
   return (
@@ -166,9 +194,9 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
               <SelectValue placeholder='Periode' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='today'>Hari Ini</SelectItem>
-              <SelectItem value='week'>Minggu Ini</SelectItem>
-              <SelectItem value='month'>Bulan Ini</SelectItem>
+              <SelectItem value='today'>Harian</SelectItem>
+              <SelectItem value='week'>Mingguan</SelectItem>
+              <SelectItem value='month'>Bulanan</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -198,7 +226,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
         <Card>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
             <CardTitle className='text-sm font-medium'>
-              Anggota Aktif Minggu Ini
+              Anggota Aktif {periodLabel}
             </CardTitle>
             <Users className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
@@ -207,11 +235,11 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
               {isLoading ? (
                 <Skeleton className='h-8 w-16' />
               ) : (
-                `${activeMembersThisWeek.size} / ${members.length}`
+                `${activeMembersThisPeriod.size} / ${members.length}`
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Anggota yang sudah input minggu ini
+              Anggota yang sudah input di periode ini
             </p>
           </CardContent>
         </Card>
@@ -240,7 +268,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Orang belum input minggu ini
+              Orang belum input periode ini
             </p>
           </CardContent>
         </Card>
@@ -260,7 +288,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
           <Card className='col-span-1 md:col-span-1'>
             <CardHeader>
               <CardTitle>Performa Anggota</CardTitle>
-              <CardDescription>Berdasarkan minggu berjalan</CardDescription>
+              <CardDescription>Berdasarkan periode berjalan</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className='h-[400px] w-full rounded-md border'>
