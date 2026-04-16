@@ -1,12 +1,5 @@
 import { useState, useMemo } from 'react'
-import {
-  Search,
-  User,
-  CheckCircle2,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react'
+import { Search, User, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
