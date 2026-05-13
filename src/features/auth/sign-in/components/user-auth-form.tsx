@@ -67,7 +67,7 @@ export function UserAuthForm({
       localStorage.removeItem(REMEMBER_EMAIL_KEY)
     }
 
-    const { error } = await signIn(data.email, data.password)
+    const { error } = await signIn(data.email, data.password, rememberMe)
 
     setIsLoading(false)
 

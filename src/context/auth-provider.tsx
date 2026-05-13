@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { type Session, type User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { supabase, clearAllAuthStorage } from '@/lib/supabase'
 
 type AuthProviderContextType = {
   session: Session | null
   user: User | null
   isLoading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null }>
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: Error | null }>
@@ -40,7 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe?: boolean) => {
+    if (rememberMe !== undefined) {
+      localStorage.setItem('rapibuol_remember_me', rememberMe ? 'true' : 'false')
+    }
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -58,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    clearAllAuthStorage()
   }
 
   const resetPassword = async (email: string) => {
