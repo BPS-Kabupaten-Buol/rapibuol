@@ -51,8 +51,13 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KepalaSatkerCards } from './kepala-satker-dashboard-cards'
 import { MemberActivityDialog } from './member-activity-dialog'
 
+const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
 export default function KepalaSatkerDashboard() {
-  const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
+  const currentYear = new Date().getFullYear()
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'custom-month'>('today')
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear)
   const [reportFilter, setReportFilter] = useState<'all' | 'sudah' | 'belum'>(
     'all'
   )
@@ -77,7 +82,7 @@ export default function KepalaSatkerDashboard() {
   // 2. Fetch All Activities in the period
   const { data: allActivities = [], isLoading: isLoadingActivities } = useQuery(
     {
-      queryKey: ['all-activities-satker', period],
+      queryKey: ['all-activities-satker', period, selectedMonth, selectedYear],
       queryFn: async () => {
         const today = new Date()
         let start: Date
@@ -89,6 +94,10 @@ export default function KepalaSatkerDashboard() {
         } else if (period === 'week') {
           start = startOfWeek(today, { weekStartsOn: 1 })
           end = endOfWeek(today, { weekStartsOn: 1 })
+        } else if (period === 'custom-month') {
+          const customDate = new Date(selectedYear, selectedMonth, 1)
+          start = startOfMonth(customDate)
+          end = endOfMonth(customDate)
         } else {
           start = startOfMonth(today)
           end = endOfMonth(today)
@@ -129,7 +138,9 @@ export default function KepalaSatkerDashboard() {
       ? 'Hari Ini'
       : period === 'week'
         ? 'Minggu Ini'
-        : 'Bulan Ini'
+        : period === 'custom-month'
+          ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}`
+          : 'Bulan Ini'
 
   // 3. Active users for current period
   const periodStart =
@@ -137,13 +148,17 @@ export default function KepalaSatkerDashboard() {
       ? new Date()
       : period === 'week'
         ? startOfWeek(new Date(), { weekStartsOn: 1 })
-        : startOfMonth(new Date())
+        : period === 'custom-month'
+          ? startOfMonth(new Date(selectedYear, selectedMonth, 1))
+          : startOfMonth(new Date())
   const periodEnd =
     period === 'today'
       ? new Date()
       : period === 'week'
         ? endOfWeek(new Date(), { weekStartsOn: 1 })
-        : endOfMonth(new Date())
+        : period === 'custom-month'
+          ? endOfMonth(new Date(selectedYear, selectedMonth, 1))
+          : endOfMonth(new Date())
   const periodStartStr = format(periodStart, 'yyyy-MM-dd')
   const periodEndStr = format(periodEnd, 'yyyy-MM-dd')
   const activeUsersThisPeriodList = allActivities.filter(
@@ -225,16 +240,43 @@ export default function KepalaSatkerDashboard() {
             Pantau kesehatan produktivitas organisasi secara menyeluruh.
           </p>
         </div>
-        <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
-          <SelectTrigger className='w-[140px]'>
-            <SelectValue placeholder='Periode' />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='today'>Harian</SelectItem>
-            <SelectItem value='week'>Mingguan</SelectItem>
-            <SelectItem value='month'>Bulanan</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className='flex items-center gap-2'>
+          <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+            <SelectTrigger className='w-[140px]'>
+              <SelectValue placeholder='Periode' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='today'>Harian</SelectItem>
+              <SelectItem value='week'>Mingguan</SelectItem>
+              <SelectItem value='month'>Bulanan</SelectItem>
+              <SelectItem value='custom-month'>Pilih Bulan</SelectItem>
+            </SelectContent>
+          </Select>
+          {period === 'custom-month' && (
+            <>
+              <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                <SelectTrigger className='w-[110px]'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_NAMES.map((name, i) => (
+                    <SelectItem key={i} value={i.toString()}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(Number(v))}>
+                <SelectTrigger className='w-[90px]'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -257,12 +299,14 @@ export default function KepalaSatkerDashboard() {
         <Card className='col-span-1 border-l-4 border-l-green-500 md:col-span-1'>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
             <CardTitle className='text-sm font-medium'>
-              Kepatuhan{' '}
+              Kepatuhan            {' '}
               {period === 'today'
                 ? 'Harian'
                 : period === 'week'
                   ? 'Mingguan'
-                  : 'Bulanan'}
+                  : period === 'custom-month'
+                    ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}`
+                    : 'Bulanan'}
             </CardTitle>
             <Clock className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
@@ -311,7 +355,7 @@ export default function KepalaSatkerDashboard() {
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Alpha / Belum Input {periodLabel}
+              Belum Input {periodLabel}
             </p>
           </CardContent>
         </Card>

@@ -44,11 +44,16 @@ interface Team {
   name: string
 }
 
+const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
 export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
+  const currentYear = new Date().getFullYear()
   const [selectedTeam, setSelectedTeam] = useState<string>(
     teams.length > 0 ? teams[0].id.toString() : ''
   )
-  const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'custom-month'>('today')
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')
@@ -83,7 +88,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
 
   // 2. Fetch Activities based on period
   const { data: activities = [], isLoading: isLoadingActivities } = useQuery({
-    queryKey: ['team-activities-period', teamId, memberIds, period],
+    queryKey: ['team-activities-period', teamId, memberIds, period, selectedMonth, selectedYear],
     queryFn: async () => {
       if (!teamId || memberIds.length === 0) return []
 
@@ -97,6 +102,10 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
       } else if (period === 'week') {
         start = startOfWeek(today, { weekStartsOn: 1 })
         end = endOfWeek(today, { weekStartsOn: 1 })
+      } else if (period === 'custom-month') {
+        const customDate = new Date(selectedYear, selectedMonth, 1)
+        start = startOfMonth(customDate)
+        end = endOfMonth(customDate)
       } else {
         start = startOfMonth(today)
         end = endOfMonth(today)
@@ -127,7 +136,9 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
       ? 'Hari Ini'
       : period === 'week'
         ? 'Minggu Ini'
-        : 'Bulan Ini'
+        : period === 'custom-month'
+          ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}`
+          : 'Bulan Ini'
 
   // Calculate active members based on period
   const getActiveMembersForPeriod = () => {
@@ -141,6 +152,10 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
     } else if (period === 'week') {
       start = startOfWeek(today, { weekStartsOn: 1 })
       end = endOfWeek(today, { weekStartsOn: 1 })
+    } else if (period === 'custom-month') {
+      const customDate = new Date(selectedYear, selectedMonth, 1)
+      start = startOfMonth(customDate)
+      end = endOfMonth(customDate)
     } else {
       start = startOfMonth(today)
       end = endOfMonth(today)
@@ -189,16 +204,43 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
             </Select>
           )}
 
-          <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
-            <SelectTrigger className='w-[140px]'>
-              <SelectValue placeholder='Periode' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='today'>Harian</SelectItem>
-              <SelectItem value='week'>Mingguan</SelectItem>
-              <SelectItem value='month'>Bulanan</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className='flex items-center gap-2'>
+            <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+              <SelectTrigger className='w-[140px]'>
+                <SelectValue placeholder='Periode' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='today'>Harian</SelectItem>
+                <SelectItem value='week'>Mingguan</SelectItem>
+                <SelectItem value='month'>Bulanan</SelectItem>
+                <SelectItem value='custom-month'>Pilih Bulan</SelectItem>
+              </SelectContent>
+            </Select>
+            {period === 'custom-month' && (
+              <>
+                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                  <SelectTrigger className='w-[110px]'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((name, i) => (
+                      <SelectItem key={i} value={i.toString()}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(Number(v))}>
+                  <SelectTrigger className='w-[90px]'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

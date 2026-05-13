@@ -32,8 +32,13 @@ import {
 } from '@/components/ui/table'
 import { ActivityHeatmap } from './activity-heatmap'
 
+const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
 export default function UserDashboard({ userId }: { userId: string }) {
-  const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
+  const currentYear = new Date().getFullYear()
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'custom-month'>('today')
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear)
   // 1. Fetch Profile & Role
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile', userId],
@@ -49,7 +54,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
   // 2. Fetch Stats
   const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['stats', userId, period],
+    queryKey: ['stats', userId, period, selectedMonth, selectedYear],
     queryFn: async () => {
       const today = new Date()
       let start: Date
@@ -61,6 +66,10 @@ export default function UserDashboard({ userId }: { userId: string }) {
       } else if (period === 'week') {
         start = startOfWeek(today, { weekStartsOn: 1 })
         end = endOfWeek(today, { weekStartsOn: 1 })
+      } else if (period === 'custom-month') {
+        const customDate = new Date(selectedYear, selectedMonth, 1)
+        start = startOfMonth(customDate)
+        end = endOfMonth(customDate)
       } else {
         start = startOfMonth(today)
         end = endOfMonth(today)
@@ -93,7 +102,12 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
       const periodCount = periodCountRes.count || 0
       const doneCount = doneRes.count || 0
-      const weekOfMonth = Math.ceil(new Date().getDate() / 7)
+      const weekOfMonth =
+        period === 'custom-month'
+          ? Math.ceil(
+              endOfMonth(new Date(selectedYear, selectedMonth, 1)).getDate() / 7
+            )
+          : Math.ceil(new Date().getDate() / 7)
       const avgTasks = ((totalRes.count || 0) / weekOfMonth).toFixed(1)
 
       return {
@@ -105,7 +119,9 @@ export default function UserDashboard({ userId }: { userId: string }) {
             ? 'Hari Ini'
             : period === 'week'
               ? 'Minggu Ini'
-              : 'Bulan Ini',
+              : period === 'custom-month'
+                ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}`
+                : 'Bulan Ini',
       }
     },
   })
@@ -132,7 +148,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
   // 4. Fetch Tasks based on period
   const { data: periodTasks, isLoading: isLoadingTasks } = useQuery({
-    queryKey: ['tasks_period', userId, period],
+    queryKey: ['tasks_period', userId, period, selectedMonth, selectedYear],
     queryFn: async () => {
       const today = new Date()
       let start: Date
@@ -144,6 +160,10 @@ export default function UserDashboard({ userId }: { userId: string }) {
       } else if (period === 'week') {
         start = startOfWeek(today, { weekStartsOn: 1 })
         end = endOfWeek(today, { weekStartsOn: 1 })
+      } else if (period === 'custom-month') {
+        const customDate = new Date(selectedYear, selectedMonth, 1)
+        start = startOfMonth(customDate)
+        end = endOfMonth(customDate)
       } else {
         start = startOfMonth(today)
         end = endOfMonth(today)
@@ -194,16 +214,43 @@ export default function UserDashboard({ userId }: { userId: string }) {
           <Badge variant='default' className='bg-green-500 hover:bg-green-600'>
             Aktif
           </Badge>
-          <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
-            <SelectTrigger className='w-[140px]'>
-              <SelectValue placeholder='Periode' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='today'>Harian</SelectItem>
-              <SelectItem value='week'>Mingguan</SelectItem>
-              <SelectItem value='month'>Bulanan</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className='flex items-center gap-2'>
+            <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+              <SelectTrigger className='w-[140px]'>
+                <SelectValue placeholder='Periode' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='today'>Harian</SelectItem>
+                <SelectItem value='week'>Mingguan</SelectItem>
+                <SelectItem value='month'>Bulanan</SelectItem>
+                <SelectItem value='custom-month'>Pilih Bulan</SelectItem>
+              </SelectContent>
+            </Select>
+            {period === 'custom-month' && (
+              <>
+                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                  <SelectTrigger className='w-[110px]'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((name, i) => (
+                      <SelectItem key={i} value={i.toString()}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(Number(v))}>
+                  <SelectTrigger className='w-[90px]'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -261,7 +308,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Per minggu (Bulan ini)
+              Per minggu ({period === 'custom-month' ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}` : 'Bulan ini'})
             </p>
           </CardContent>
         </Card>
