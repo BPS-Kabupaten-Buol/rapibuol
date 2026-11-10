@@ -44,6 +44,23 @@ interface Team {
   name: string
 }
 
+type MemberProfile = {
+  name: string | null
+  email: string | null
+}
+
+type TeamMemberRow = {
+  user_id: string
+  profiles: MemberProfile | MemberProfile[] | null
+}
+
+function getMemberProfile(
+  profiles: TeamMemberRow['profiles']
+): MemberProfile | null {
+  if (Array.isArray(profiles)) return profiles[0] ?? null
+  return profiles ?? null
+}
+
 const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
@@ -64,7 +81,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
   // 1. Fetch Team Members
   const { data: members = [], isLoading: isLoadingMembers } = useQuery({
     queryKey: ['team-members', teamId],
-    queryFn: async () => {
+    queryFn: async (): Promise<TeamMemberRow[]> => {
       if (!teamId) return []
       const { data } = await supabase
         .from('users_teams')
@@ -79,7 +96,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
         `
         )
         .eq('team_id', teamId)
-      return data || []
+      return (data ?? []) as unknown as TeamMemberRow[]
     },
     enabled: !!teamId,
   })
@@ -205,7 +222,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
           )}
 
           <div className='flex items-center gap-2'>
-            <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+            <Select value={period} onValueChange={(val) => setPeriod(val as 'today' | 'week' | 'month' | 'custom-month')}>
               <SelectTrigger className='w-[140px]'>
                 <SelectValue placeholder='Periode' />
               </SelectTrigger>
@@ -366,15 +383,12 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
                             (a) => a.user_id === member.user_id
                           )
                           const doneActs = memberActs.filter((a) => a.is_done)
-                          const profileData =
-                            (Array.isArray(member.profiles)
-                              ? member.profiles[0]
-                              : member.profiles) || {}
+                          const profileData = getMemberProfile(member.profiles)
 
                           return (
                             <TableRow key={member.user_id}>
                               <TableCell className='font-medium'>
-                                {profileData.name || 'Unknown'}
+                                {profileData?.name || 'Unknown'}
                               </TableCell>
                               <TableCell className='text-center'>
                                 {memberActs.length}
@@ -389,7 +403,7 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
                                   onClick={() => {
                                     setSelectedMemberId(member.user_id)
                                     setSelectedMemberName(
-                                      profileData.name || 'Unknown'
+                                      profileData?.name || 'Unknown'
                                     )
                                     setSheetOpen(true)
                                   }}
@@ -455,15 +469,11 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
                     </TableHeader>
                     <TableBody>
                       {missingReportMembers.map((member) => {
-                        // @ts-ignore
-                        const profileData =
-                          ((Array.isArray(member.profiles)
-                            ? member.profiles[0]
-                            : member.profiles) as any) || {}
+                        const profileData = getMemberProfile(member.profiles)
                         return (
                           <TableRow key={member.user_id}>
                             <TableCell className='font-medium'>
-                              {profileData.name || 'Unknown'}
+                              {profileData?.name || 'Unknown'}
                             </TableCell>
                             <TableCell className='text-right'>
                               <Badge variant='destructive'>Belum Lapor</Badge>

@@ -36,8 +36,3 @@ export type CreateActivityInput = {
 }
 
 export type UpdateActivityInput = Partial<CreateActivityInput>
-
-export const taskSchema = activitySchema
-export type Task = Activity
-export type CreateTaskInput = CreateActivityInput
-export type UpdateTaskInput = UpdateActivityInput

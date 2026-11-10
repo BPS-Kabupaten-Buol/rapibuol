@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 /// <reference lib="dom" />
 
+/* eslint-disable no-console -- Service worker logs only run in development builds. */
+
 declare const self: ServiceWorkerGlobalScope
 
 // Handle message dari client untuk skip waiting

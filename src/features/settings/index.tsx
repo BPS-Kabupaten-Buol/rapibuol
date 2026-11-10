@@ -10,11 +10,6 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { SidebarNav } from './components/sidebar-nav'
 
 const sidebarNavItems = [
-  // {
-  //   title: 'Profile',
-  //   href: '/settings',
-  //   icon: <UserCog size={18} />,
-  // },
   {
     title: 'Account',
     href: '/settings/account',
@@ -25,11 +20,6 @@ const sidebarNavItems = [
     href: '/settings/appearance',
     icon: <Palette size={18} />,
   },
-  // {
-  //   title: 'Notifications',
-  //   href: '/settings/notifications',
-  //   icon: <Bell size={18} />,
-  // }
 ]
 
 export function Settings() {

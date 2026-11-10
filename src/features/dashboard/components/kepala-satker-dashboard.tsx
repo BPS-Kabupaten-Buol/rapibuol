@@ -53,6 +53,22 @@ import { MemberActivityDialog } from './member-activity-dialog'
 
 const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
+type SatkerUser = {
+  id: string
+  name: string | null
+  email: string | null
+  users_teams: Array<{ teams: { name: string } | null }> | null
+  users_roles: Array<{ roles: { name: string } | null }> | null
+}
+
+type SatkerActivity = {
+  id: number
+  user_id: string
+  date: string
+  is_done: boolean
+  assignor_team?: { name: string } | null
+}
+
 export default function KepalaSatkerDashboard() {
   const currentYear = new Date().getFullYear()
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'custom-month'>('today')
@@ -75,7 +91,7 @@ export default function KepalaSatkerDashboard() {
           users_teams(teams(name)),
           users_roles(roles(name))
         `)
-      return data || []
+      return (data ?? []) as unknown as SatkerUser[]
     },
   })
 
@@ -111,7 +127,7 @@ export default function KepalaSatkerDashboard() {
           .select('*, assignor_team:teams(name)')
           .gte('date', startStr)
           .lte('date', endStr)
-        return data || []
+        return (data ?? []) as unknown as SatkerActivity[]
       },
     }
   )
@@ -192,7 +208,7 @@ export default function KepalaSatkerDashboard() {
     const days = eachDayOfInterval({ start, end })
 
     const groupByDate = allActivitiesForTrend.reduce(
-      (acc: Record<string, number>, curr: any) => {
+      (acc: Record<string, number>, curr: { date: string }) => {
         acc[curr.date] = (acc[curr.date] || 0) + 1
         return acc
       },
@@ -221,14 +237,11 @@ export default function KepalaSatkerDashboard() {
     (u) => !activeUsersThisPeriod.has(u.id)
   )
 
-  const filteredUsersByReport = useMemo(() => {
-    if (reportFilter === 'sudah') {
-      return allUsers.filter((u) => activeUsersThisPeriod.has(u.id))
-    } else if (reportFilter === 'belum') {
-      return allUsers.filter((u) => !activeUsersThisPeriod.has(u.id))
-    }
-    return allUsers
-  }, [allUsers, activeUsersThisPeriod, reportFilter])
+  const filteredUsersByReport = allUsers.filter((u) => {
+    if (reportFilter === 'sudah') return activeUsersThisPeriod.has(u.id)
+    if (reportFilter === 'belum') return !activeUsersThisPeriod.has(u.id)
+    return true
+  })
 
   return (
     <div className='flex flex-col gap-6 p-1'>
@@ -241,7 +254,7 @@ export default function KepalaSatkerDashboard() {
           </p>
         </div>
         <div className='flex items-center gap-2'>
-          <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+          <Select value={period} onValueChange={(val) => setPeriod(val as 'today' | 'week' | 'month' | 'custom-month')}>
             <SelectTrigger className='w-[140px]'>
               <SelectValue placeholder='Periode' />
             </SelectTrigger>
@@ -444,7 +457,7 @@ export default function KepalaSatkerDashboard() {
       {/* Master Table Pegawai */}
       {isMobile ? (
         <KepalaSatkerCards
-          users={allUsers as any}
+          users={allUsers}
           activities={allActivities}
           activeUsersThisPeriod={activeUsersThisPeriod}
           isLoading={isLoading}
@@ -462,7 +475,7 @@ export default function KepalaSatkerDashboard() {
           <CardContent>
             <Tabs
               value={reportFilter}
-              onValueChange={(v) => setReportFilter(v as any)}
+              onValueChange={(v) => setReportFilter(v as 'all' | 'sudah' | 'belum')}
               className='mb-4'
             >
               <TabsList>
@@ -510,7 +523,7 @@ export default function KepalaSatkerDashboard() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : filteredUsersByReport.map((u: any) => {
+                  : filteredUsersByReport.map((u) => {
                       const userActs = allActivities.filter(
                         (a) => a.user_id === u.id
                       )
@@ -543,7 +556,7 @@ export default function KepalaSatkerDashboard() {
                               size='sm'
                               onClick={() => {
                                 setSelectedMemberId(u.id)
-                                setSelectedMemberName(u.name)
+                                setSelectedMemberName(u.name ?? 'Unknown')
                                 setSheetOpen(true)
                               }}
                             >

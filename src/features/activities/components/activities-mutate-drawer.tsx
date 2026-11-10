@@ -38,6 +38,8 @@ type ActivityMutateDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow?: Activity
+  /** Prefilled date when creating from a specific day. */
+  defaultDate?: Date
 }
 
 const formSchema = z.object({
@@ -56,10 +58,16 @@ const formSchema = z.object({
 
 type ActivityForm = z.infer<typeof formSchema>
 
+type ActivityStats = {
+  totalVolume?: number
+  pendingCount?: number
+}
+
 export function ActivitiesMutateDrawer({
   open,
   onOpenChange,
   currentRow,
+  defaultDate,
 }: ActivityMutateDrawerProps) {
   const isUpdate = !!currentRow
   const queryClient = useQueryClient()
@@ -94,41 +102,55 @@ export function ActivitiesMutateDrawer({
         ? queryClient.getQueryData(['stats', user.id])
         : undefined
 
-      const optimisticActivity = {
+      const optimisticActivity: Activity = {
         id: Math.random(),
-        ...newActivity,
-        unit: units.find((u) => u.id === newActivity.unit),
-        assignor_team: teams.find((t) => t.id === newActivity.assignor),
+        description: newActivity.description,
+        date: newActivity.date,
+        end_date: newActivity.end_date,
+        start_time: newActivity.start_time,
+        end_time: newActivity.end_time,
+        volume: newActivity.volume,
+        unit: newActivity.unit,
+        assignor: newActivity.assignor,
+        is_done: newActivity.is_done,
+        user_id: newActivity.user_id,
+        link_bukti_dukung: newActivity.link_bukti_dukung,
+        coordinates: newActivity.coordinates,
+        created_at: new Date().toISOString(),
+        updated_at: null,
       }
 
       if (user) {
-        queryClient.setQueryData(['activities', user.id], (old: any) => [
-          optimisticActivity,
-          ...(old || []),
-        ])
+        queryClient.setQueryData<Activity[]>(
+          ['activities', user.id],
+          (old = []) => [optimisticActivity, ...old]
+        )
       }
 
       if (user) {
         const today = format(new Date(), 'yyyy-MM-dd')
         if (newActivity.date === today) {
-          queryClient.setQueryData(['tasks_today', user.id], (old: any) => [
-            optimisticActivity,
-            ...(old || []),
-          ])
+          queryClient.setQueryData<Activity[]>(
+            ['tasks_today', user.id],
+            (old = []) => [optimisticActivity, ...old]
+          )
         }
 
         const isThisMonth = newActivity.date.startsWith(today.substring(0, 7))
         if (isThisMonth) {
-          queryClient.setQueryData(['stats', user.id], (old: any) => {
-            if (!old) return old
-            return {
-              ...old,
-              totalVolume: (old.totalVolume || 0) + (newActivity.volume || 0),
-              pendingCount: newActivity.is_done
-                ? old.pendingCount
-                : (old.pendingCount || 0) + 1,
+          queryClient.setQueryData<ActivityStats>(
+            ['stats', user.id],
+            (old) => {
+              if (!old) return old
+              return {
+                ...old,
+                totalVolume: (old.totalVolume ?? 0) + (newActivity.volume ?? 0),
+                pendingCount: newActivity.is_done
+                  ? old.pendingCount
+                  : (old.pendingCount ?? 0) + 1,
+              }
             }
-          })
+          )
         }
       }
 
@@ -200,7 +222,7 @@ export function ActivitiesMutateDrawer({
         }
       : {
           description: '',
-          date: new Date(),
+          date: defaultDate ?? new Date(),
           end_date: undefined,
           start_time: '',
           end_time: '',

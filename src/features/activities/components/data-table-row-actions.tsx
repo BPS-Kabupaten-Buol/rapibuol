@@ -1,6 +1,6 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { type Row } from '@tanstack/react-table'
-import { Trash2 } from 'lucide-react'
+import { CalendarPlus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -11,16 +11,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { activitySchema } from '../data/schema'
+import { getActivityCalendarUrl } from '../lib/google-calendar-link'
 import { useActivities } from './activities-provider'
 
 type DataTableRowActionsProps<TData> = {
   row: Row<TData>
+  unitName?: string | null
+  teamName?: string | null
 }
 
 export function DataTableRowActions<TData>({
   row,
+  unitName,
+  teamName,
 }: DataTableRowActionsProps<TData>) {
   const activity = activitySchema.parse(row.original)
+  const calendarUrl = getActivityCalendarUrl(activity, { unitName, teamName })
 
   const { setOpen, setCurrentRow } = useActivities()
 
@@ -35,7 +41,7 @@ export function DataTableRowActions<TData>({
           <span className='sr-only'>Buka menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-[160px]'>
+      <DropdownMenuContent align='end' className='w-[220px]'>
         <DropdownMenuItem
           onClick={() => {
             setCurrentRow(activity)
@@ -44,9 +50,19 @@ export function DataTableRowActions<TData>({
         >
           Ubah
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>Buat salinan</DropdownMenuItem>
-        <DropdownMenuItem disabled>Simpan ke favorit</DropdownMenuItem>
-        <DropdownMenuItem disabled>Simpan ke favorit</DropdownMenuItem>
+        {calendarUrl && (
+          <DropdownMenuItem asChild>
+            <a
+              href={calendarUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              onClick={(event) => event.stopPropagation()}
+            >
+              <CalendarPlus className='mr-2 h-4 w-4 text-blue-500' />
+              Tambah ke Google Calendar
+            </a>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {

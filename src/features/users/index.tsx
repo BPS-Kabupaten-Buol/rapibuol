@@ -7,8 +7,7 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
-import { UsersProvider } from './components/users-provider'
-import { useUsersDialog } from './components/users-provider'
+import { UsersProvider, useUsersDialog } from './components/users-provider'
 import { UsersTable } from './components/users-table'
 
 const route = getRouteApi('/_authenticated/users/')

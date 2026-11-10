@@ -1,12 +1,14 @@
 import { format } from 'date-fns'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ClipboardList, MapPin } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { type Team } from '@/features/teams/api/teams'
 import { type Unit } from '@/features/units/api/units'
 import { statuses } from '../data/data'
 import { type Activity } from '../data/schema'
+import { ActivityDoneToggle } from './activity-done-toggle'
 import { DataTableRowActions } from './data-table-row-actions'
 
 function truncateUrl(url: string, maxLength = 30): string {
@@ -25,29 +27,36 @@ function truncateUrl(url: string, maxLength = 30): string {
 
 export const activitiesColumns = (
   teams: Team[],
-  units: Unit[]
+  units: Unit[],
+  selectionMode = false
 ): ColumnDef<Activity>[] => [
   {
     id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Pilih semua'
-        className='translate-y-[2px]'
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Pilih baris'
-        className='translate-y-[2px]'
-      />
-    ),
+    header: ({ table }) =>
+      selectionMode ? (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate')
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label='Pilih semua'
+          className='translate-y-[2px]'
+        />
+      ) : (
+        <span className='sr-only'>Selesai</span>
+      ),
+    cell: ({ row }) =>
+      selectionMode ? (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label='Pilih aktivitas'
+          className='translate-y-[2px]'
+        />
+      ) : (
+        <ActivityDoneToggle activity={row.original} />
+      ),
     enableSorting: false,
     enableHiding: false,
   },
@@ -61,6 +70,8 @@ export const activitiesColumns = (
       tdClassName: 'ps-4',
     },
     cell: ({ row }) => {
+      const isDone = row.original.is_done
+
       return (
         <div className='flex items-start gap-3 py-1'>
           {/* Menggunakan items-start agar icon tetap di atas jika teks panjang */}
@@ -71,7 +82,12 @@ export const activitiesColumns = (
           {/* Gunakan whitespace-normal agar teks bisa wrap ke bawah */}
           {/* Atau gunakan line-clamp-2 jika ingin membatasi hanya 2 baris */}
           <div className='flex flex-col'>
-            <span className='leading-tight font-medium break-words whitespace-normal'>
+            <span
+              className={cn(
+                'leading-tight font-medium break-words whitespace-normal',
+                isDone && 'text-muted-foreground line-through'
+              )}
+            >
               {row.getValue('description')}
             </span>
           </div>
@@ -266,6 +282,12 @@ export const activitiesColumns = (
   },
   {
     id: 'actions',
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => (
+      <DataTableRowActions
+        row={row}
+        unitName={units.find((u) => u.id === row.original.unit)?.name ?? null}
+        teamName={teams.find((t) => t.id === row.original.assignor)?.name ?? null}
+      />
+    ),
   },
 ]

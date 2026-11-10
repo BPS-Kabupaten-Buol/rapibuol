@@ -37,7 +37,9 @@ export function usePWAUpdate() {
       // Check for updates setiap 1 jam
       const interval = setInterval(
         () => {
-          registration.update().catch(console.error)
+          registration.update().catch(() => {
+            // Dicoba lagi pada interval berikutnya.
+          })
         },
         60 * 60 * 1000
       )

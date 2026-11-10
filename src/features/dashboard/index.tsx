@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { useSupabaseAuth } from '@/stores/auth-store'
+import { useAuth } from '@/context/auth-provider'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -11,6 +11,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { useUserRoles } from '@/hooks/use-user-roles'
+import { SATKER_DASHBOARD_ROLES } from '@/lib/roles'
 import { ActivitiesDialogs } from '@/features/activities/components/activities-dialogs'
 import {
   ActivitiesProvider,
@@ -21,13 +22,19 @@ import TeamLeaderDashboard from './components/team-leader-dashboard'
 import UserDashboard from './components/user-dashboard'
 
 function DashboardFAB() {
-  const { setOpen } = useActivities()
+  const { setOpen, setDefaultDate } = useActivities()
+
+  const openCreate = () => {
+    setDefaultDate(null)
+    setOpen('create')
+  }
+
   return (
     <>
       {/* Mobile: icon-only round */}
       <Button
         className='fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full shadow-lg sm:hidden'
-        onClick={() => setOpen('create')}
+        onClick={openCreate}
         size='icon'
         aria-label='Tambah Aktivitas Baru'
       >
@@ -36,7 +43,7 @@ function DashboardFAB() {
       {/* Desktop: pill with text */}
       <Button
         className='fixed right-6 bottom-6 z-50 h-14 gap-2 rounded-full px-5 shadow-lg max-sm:hidden'
-        onClick={() => setOpen('create')}
+        onClick={openCreate}
         size='lg'
       >
         <Plus className='h-5 w-5' />
@@ -47,7 +54,7 @@ function DashboardFAB() {
 }
 
 function DashboardContent() {
-  const { session } = useSupabaseAuth()
+  const { session } = useAuth()
   const userId = session?.user?.id
 
   // Fetch Roles (shared cache with sidebar via useUserRoles)
@@ -67,7 +74,7 @@ function DashboardContent() {
     enabled: !!userId,
   })
 
-  const isSatker = roles?.includes(1) || roles?.includes(2)
+  const isSatker = roles?.some((role) => SATKER_DASHBOARD_ROLES.includes(role))
   const isTeamLeader = teamsLed && teamsLed.length > 0
 
   return (

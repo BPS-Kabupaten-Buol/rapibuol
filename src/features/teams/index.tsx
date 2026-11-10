@@ -7,8 +7,7 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { TeamsDialogs } from './components/teams-dialogs'
 import { TeamsPrimaryButtons } from './components/teams-primary-buttons'
-import { TeamsProvider } from './components/teams-provider'
-import { useTeamDialog } from './components/teams-provider'
+import { TeamsProvider, useTeamDialog } from './components/teams-provider'
 import { TeamsTable } from './components/teams-table'
 
 const route = getRouteApi('/_authenticated/teams/')

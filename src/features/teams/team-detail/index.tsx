@@ -11,7 +11,6 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { useTeams, useTeamMembers } from '../hooks'
 import { AddMemberDialog } from './add-member-dialog'
-import { TeamDetailProvider } from './team-detail-provider'
 import { TeamMembersTable } from './team-members-table'
 
 const route = getRouteApi('/_authenticated/teams/$teamId')
@@ -53,7 +52,7 @@ export function TeamDetail() {
   }
 
   return (
-    <TeamDetailProvider>
+    <>
       <Header fixed>
         <div className='flex items-center gap-2'>
           <Button
@@ -115,6 +114,6 @@ export function TeamDetail() {
           currentMembers={members}
         />
       </Main>
-    </TeamDetailProvider>
+    </>
   )
 }

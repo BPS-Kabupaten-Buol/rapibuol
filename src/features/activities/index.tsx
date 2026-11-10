@@ -18,7 +18,10 @@ import {
 import { ActivitiesTable } from './components/activities-table'
 
 function ActivitiesFAB() {
-  const { setOpen } = useActivities()
+  const { setOpen, selectionMode } = useActivities()
+
+  if (selectionMode) return null
+
   return (
     <Button
       className='fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full shadow-lg sm:hidden'

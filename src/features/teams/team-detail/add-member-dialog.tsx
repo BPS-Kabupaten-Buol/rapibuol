@@ -45,7 +45,7 @@ export function AddMemberDialog({
     const q = searchQuery.toLowerCase()
     if (!q) return availableUsers
     return availableUsers.filter(
-      (u: any) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
     )
   }, [availableUsers, searchQuery])
 
@@ -59,7 +59,7 @@ export function AddMemberDialog({
     if (selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0) {
       setSelectedUserIds([])
     } else {
-      setSelectedUserIds(filteredUsers.map((u: any) => u.id))
+      setSelectedUserIds(filteredUsers.map((u) => u.id))
     }
   }
 
@@ -89,7 +89,7 @@ export function AddMemberDialog({
 
   const allFilteredSelected =
     filteredUsers.length > 0 &&
-    filteredUsers.every((u: any) => selectedUserIds.includes(u.id))
+    filteredUsers.every((u) => selectedUserIds.includes(u.id))
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
@@ -158,7 +158,7 @@ export function AddMemberDialog({
                     </div>
                   </label>
 
-                  {filteredUsers.map((user: any) => {
+                  {filteredUsers.map((user) => {
                     const isSelected = selectedUserIds.includes(user.id)
                     return (
                       <label

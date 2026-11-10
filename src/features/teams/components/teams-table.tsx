@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   type SortingState,
   type VisibilityState,
@@ -24,7 +24,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import type { TeamWithLeader } from '../data/schema'
-import { teamsColumns } from './teams-columns'
+import { createTeamsColumns } from './teams-columns'
+import { useTeamDialog } from './teams-provider'
 
 type TeamsTableProps = {
   data: TeamWithLeader[]
@@ -43,6 +44,17 @@ export function TeamsTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
 
+  const { setSelectedTeam, onMembersOpen } = useTeamDialog()
+
+  const columns = useMemo(
+    () =>
+      createTeamsColumns((team) => {
+        setSelectedTeam(team)
+        onMembersOpen(true)
+      }),
+    [setSelectedTeam, onMembersOpen]
+  )
+
   const {
     columnFilters,
     onColumnFiltersChange,
@@ -59,7 +71,7 @@ export function TeamsTable({
 
   const table = useReactTable({
     data,
-    columns: teamsColumns,
+    columns,
     state: {
       sorting,
       pagination,
@@ -162,7 +174,7 @@ export function TeamsTable({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={teamsColumns.length}
+                  colSpan={columns.length}
                   className='h-24 text-center'
                 >
                   Tim tidak ditemukan.

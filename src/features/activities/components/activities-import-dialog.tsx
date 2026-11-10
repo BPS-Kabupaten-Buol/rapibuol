@@ -106,6 +106,7 @@ export function ActivitiesImportDialog({
         setParsedData([])
 
         // Log for debugging
+        // eslint-disable-next-line no-console
         console.error('Document parse result:', {
           file: selectedFile.name,
           success: result.success,
@@ -122,6 +123,7 @@ export function ActivitiesImportDialog({
 
       // Show warnings if any
       if (result.errors.length > 0) {
+        // eslint-disable-next-line no-console
         console.warn('Parse warnings:', result.errors)
         setErrors(result.errors)
       } else {
@@ -139,6 +141,7 @@ export function ActivitiesImportDialog({
       setParsedData([])
 
       // Log error for debugging
+      // eslint-disable-next-line no-console
       console.error('File processing error:', {
         file: selectedFile.name,
         error: err,
@@ -185,6 +188,7 @@ export function ActivitiesImportDialog({
           await createActivity(input)
           count++
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error('Error importing row:', { row, error })
           throw error
         }
@@ -205,6 +209,7 @@ export function ActivitiesImportDialog({
       const errorMessage =
         err instanceof Error ? err.message : 'Gagal mengimpor aktivitas'
       toast.error(errorMessage)
+      // eslint-disable-next-line no-console
       console.error('Import error:', {
         message: errorMessage,
         error: err,

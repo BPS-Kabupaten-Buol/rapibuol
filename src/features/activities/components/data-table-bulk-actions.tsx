@@ -1,109 +1,123 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
-import { Trash2, CircleArrowUp, Download } from 'lucide-react'
+import { Check, Circle, CalendarPlus, Download, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { sleep } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/handle-server-error'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
-import { statuses } from '../data/data'
+import { type Team } from '@/features/teams/api/teams'
+import { type Unit } from '@/features/units/api/units'
+import { updateActivitiesStatus } from '../api/activities'
 import { type Activity } from '../data/schema'
+import { exportActivities } from '../lib/export-activities'
+import { downloadActivitiesIcs } from '../lib/ics-export'
 import { ActivitiesMultiDeleteDialog } from './activities-multi-delete-dialog'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
+  teams: Team[]
+  units: Unit[]
 }
 
 export function DataTableBulkActions<TData>({
   table,
+  teams,
+  units,
 }: DataTableBulkActionsProps<TData>) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const selectedRows = table.getFilteredSelectedRowModel().rows
+  const queryClient = useQueryClient()
 
-  const handleBulkStatusChange = (status: boolean) => {
-    const selectedActivities = selectedRows.map(
-      (row) => row.original as Activity
-    )
-    toast.promise(sleep(2000), {
-      loading: 'Memperbarui status...',
-      success: () => {
-        table.resetRowSelection()
-        return `Status berhasil diperbarui menjadi "${status ? 'Selesai' : 'Belum Selesai'}" untuk ${selectedActivities.length} aktivitas.`
-      },
-      error: 'Error',
-    })
-    table.resetRowSelection()
+  const selectedActivities = table
+    .getFilteredSelectedRowModel()
+    .rows.map((row) => row.original as Activity)
+  const selectedIds = selectedActivities.map((activity) => activity.id)
+
+  const statusMutation = useMutation({
+    mutationFn: (isDone: boolean) => updateActivitiesStatus(selectedIds, isDone),
+    onSuccess: (_data, isDone) => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] })
+      toast.success(
+        `Status ${selectedActivities.length} aktivitas diubah menjadi "${isDone ? 'Selesai' : 'Belum Selesai'}".`
+      )
+      table.resetRowSelection()
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
+
+  const handleBulkCalendar = () => {
+    if (selectedActivities.length === 0) return
+
+    try {
+      downloadActivitiesIcs(selectedActivities, teams, units)
+      toast.success(
+        `${selectedActivities.length} aktivitas diekspor ke file .ics. Buka file itu untuk mengimpor ke Google Calendar.`,
+        { duration: 8000 }
+      )
+      table.resetRowSelection()
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    }
   }
 
   const handleBulkExport = () => {
-    const selectedActivities = selectedRows.map(
-      (row) => row.original as Activity
-    )
-    toast.promise(sleep(2000), {
-      loading: 'Mengekspor aktivitas...',
-      success: () => {
-        table.resetRowSelection()
-        return `${selectedActivities.length} aktivitas berhasil diekspor ke CSV.`
-      },
-      error: 'Error',
-    })
-    table.resetRowSelection()
+    if (selectedActivities.length === 0) return
+
+    try {
+      exportActivities(selectedActivities, teams, units, '-terpilih')
+      toast.success(`${selectedActivities.length} aktivitas diekspor ke XLSX.`)
+      table.resetRowSelection()
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    }
   }
 
   return (
     <>
       <BulkActionsToolbar table={table} entityName='activity'>
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant='outline'
-                  size='icon'
-                  className='size-8'
-                  aria-label='Perbarui status'
-                  title='Perbarui status'
-                >
-                  <CircleArrowUp />
-                  <span className='sr-only'>Perbarui status</span>
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Perbarui status</p>
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent sideOffset={14}>
-            {statuses.map((status) => (
-              <DropdownMenuItem
-                key={String(status.value)}
-                onClick={() => handleBulkStatusChange(status.value)}
-              >
-                {status.icon && (
-                  <status.icon className='size-4 text-muted-foreground' />
-                )}
-                {status.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          size='sm'
+          className='h-8 gap-1.5'
+          disabled={statusMutation.isPending}
+          onClick={() => statusMutation.mutate(true)}
+          aria-label='Tandai selesai'
+          title='Tandai selesai'
+        >
+          <Check className='size-4' />
+          <span className='max-sm:sr-only'>Tandai selesai</span>
+        </Button>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant='outline'
               size='icon'
-              onClick={() => handleBulkExport()}
+              className='size-8'
+              disabled={statusMutation.isPending}
+              onClick={() => statusMutation.mutate(false)}
+              aria-label='Tandai belum selesai'
+              title='Tandai belum selesai'
+            >
+              <Circle />
+              <span className='sr-only'>Tandai belum selesai</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Tandai belum selesai</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={handleBulkExport}
               className='size-8'
               aria-label='Ekspor aktivitas'
               title='Ekspor aktivitas'
@@ -114,6 +128,25 @@ export function DataTableBulkActions<TData>({
           </TooltipTrigger>
           <TooltipContent>
             <p>Ekspor aktivitas</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={handleBulkCalendar}
+              className='size-8'
+              aria-label='Tambah ke Google Calendar'
+              title='Tambah ke Google Calendar'
+            >
+              <CalendarPlus />
+              <span className='sr-only'>Tambah ke Google Calendar</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Tambah ke Google Calendar</p>
           </TooltipContent>
         </Tooltip>
 

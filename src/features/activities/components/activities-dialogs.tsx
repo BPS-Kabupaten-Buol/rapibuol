@@ -1,13 +1,23 @@
+import { format } from 'date-fns'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { deleteActivity } from '@/features/activities/api/activities'
+import { ActivityDetailDrawer } from './activity-detail-drawer'
 import { ActivitiesImportDialog } from './activities-import-dialog'
 import { ActivitiesMutateDrawer } from './activities-mutate-drawer'
 import { useActivities } from './activities-provider'
 
 export function ActivitiesDialogs() {
-  const { open, setOpen, currentRow, setCurrentRow } = useActivities()
+  const {
+    open,
+    setOpen,
+    currentRow,
+    setCurrentRow,
+    defaultDate,
+    detailActivity,
+    setDetailActivity,
+  } = useActivities()
   const queryClient = useQueryClient()
 
   const deleteMutation = useMutation({
@@ -23,10 +33,24 @@ export function ActivitiesDialogs() {
 
   return (
     <>
+      <ActivityDetailDrawer
+        open={!!detailActivity}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setDetailActivity(null)
+        }}
+        activity={detailActivity}
+        onEdit={(activity) => {
+          setDetailActivity(null)
+          setCurrentRow(activity)
+          setOpen('update')
+        }}
+      />
+
       <ActivitiesMutateDrawer
-        key='activity-create'
+        key={`activity-create-${defaultDate ? format(defaultDate, 'yyyy-MM-dd') : 'today'}`}
         open={open === 'create'}
         onOpenChange={() => setOpen('create')}
+        defaultDate={defaultDate ?? undefined}
       />
 
       <ActivitiesImportDialog

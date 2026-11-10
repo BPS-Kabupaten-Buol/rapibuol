@@ -6,7 +6,6 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
-  format,
 } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
@@ -22,9 +21,15 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Download, LayoutGrid, Table as TableIcon } from 'lucide-react'
+import {
+  Check,
+  Download,
+  LayoutGrid,
+  ListChecks,
+  Table as TableIcon,
+  X,
+} from 'lucide-react'
 import { type DateRange } from 'react-day-picker'
-import { exportToXlsx } from '@/lib/export'
 import { cn } from '@/lib/utils'
 // import { useIsMobile } from '@/hooks/use-mobile'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
@@ -45,26 +50,11 @@ import { DateRangePicker } from '@/components/date-range-picker'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
 import { type Activity } from '../data/schema'
+import { exportActivities } from '../lib/export-activities'
 import { ActivitiesCards } from './activities-cards'
 import { activitiesColumns } from './activities-columns'
+import { useActivities } from './activities-provider'
 import { DataTableBulkActions } from './data-table-bulk-actions'
-
-const EXPORT_COLUMNS = [
-  { key: 'description' as const, header: 'Deskripsi' },
-  { key: 'date' as const, header: 'Tanggal' },
-  { key: 'end_date' as const, header: 'Tanggal Berakhir' },
-  { key: 'start_time' as const, header: 'Jam Mulai' },
-  { key: 'end_time' as const, header: 'Jam Selesai' },
-  { key: 'volume' as const, header: 'Volume' },
-  { key: 'unit_name' as const, header: 'Satuan' },
-  { key: 'team_name' as const, header: 'Tim' },
-  { key: 'link_bukti_dukung' as const, header: 'Link Bukti Dukung' },
-  { key: 'is_done' as const, header: 'Status' },
-]
-
-function getStatusLabel(isDone: boolean): string {
-  return isDone ? 'Selesai' : 'Pending'
-}
 
 const route = getRouteApi('/_authenticated/activities/')
 
@@ -97,8 +87,10 @@ function getDateRange(filter: DateFilter): { start: Date; end: Date } {
 }
 
 export function ActivitiesTable({ data, isLoading }: DataTableProps) {
+  const { setDetailActivity, selectionMode, setSelectionMode } = useActivities()
+
   const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
+    queryKey: ['teams', 'options'],
     queryFn: getTeams,
   })
 
@@ -179,7 +171,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
-    columns: activitiesColumns(teams, units),
+    columns: activitiesColumns(teams, units, selectionMode),
     state: {
       sorting,
       columnVisibility,
@@ -225,6 +217,21 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
     ensurePageInRange(pageCount)
   }, [pageCount, ensurePageInRange])
 
+  const selectedCount = table.getFilteredSelectedRowModel().rows.length
+
+  const stopSelectionMode = () => {
+    table.resetRowSelection()
+    setSelectionMode(false)
+  }
+
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      stopSelectionMode()
+      return
+    }
+    setSelectionMode(true)
+  }
+
   return (
     <div
       className={cn(
@@ -247,23 +254,25 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
         viewSlot={
           <div className='flex min-w-0 items-center gap-2'>
             <Button
+              variant={selectionMode ? 'secondary' : 'outline'}
+              size='sm'
+              className='h-8 gap-1.5'
+              onClick={toggleSelectionMode}
+            >
+              {selectionMode ? (
+                <X className='h-3.5 w-3.5' />
+              ) : (
+                <ListChecks className='h-3.5 w-3.5' />
+              )}
+              <span className='max-sm:hidden'>
+                {selectionMode ? 'Batal' : 'Pilih'}
+              </span>
+            </Button>
+            <Button
               variant='outline'
               size='sm'
               className='h-8 gap-1.5'
-              onClick={() => {
-                const exportData = filteredData.map((a) => ({
-                  ...a,
-                  is_done: getStatusLabel(a.is_done),
-                  unit_name: units.find((u) => u.id === a.unit)?.name ?? '-',
-                  team_name:
-                    teams.find((t) => t.id === a.assignor)?.name ?? '-',
-                }))
-                exportToXlsx(
-                  exportData,
-                  `activities-${format(new Date(), 'yyyy-MM-dd')}`,
-                  [...EXPORT_COLUMNS]
-                )
-              }}
+              onClick={() => exportActivities(filteredData, teams, units)}
               disabled={filteredData.length === 0}
             >
               <Download className='h-3.5 w-3.5' />
@@ -347,6 +356,33 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
           </div>
         }
       />
+      {selectionMode && (
+        <div className='flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm'>
+          <Check className='h-4 w-4 shrink-0 text-emerald-500' />
+          <span className='font-medium tabular-nums'>
+            {selectedCount} dipilih
+          </span>
+          <div className='ms-auto flex items-center gap-1'>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-7 px-2 text-xs'
+              onClick={() => table.toggleAllPageRowsSelected(true)}
+            >
+              Pilih semua
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-7 px-2 text-xs'
+              onClick={() => table.resetRowSelection()}
+              disabled={selectedCount === 0}
+            >
+              Kosongkan
+            </Button>
+          </div>
+        </div>
+      )}
       {viewMode === 'table' ? (
         <div className='overflow-x-auto rounded-md border'>
           <Table className='min-w-[600px]'>
@@ -410,6 +446,22 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
+                    className='cursor-pointer'
+                    onClick={(event) => {
+                      const target = event.target as HTMLElement
+                      if (
+                        target.closest(
+                          'button, a, input, [role="menu"], [role="checkbox"]'
+                        )
+                      ) {
+                        return
+                      }
+                      if (selectionMode) {
+                        row.toggleSelected()
+                        return
+                      }
+                      setDetailActivity(row.original)
+                    }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
@@ -464,7 +516,7 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
         <ActivitiesCards table={table} teams={teams} units={units} />
       )}
       <DataTablePagination table={table} className='mt-auto' />
-      <DataTableBulkActions table={table} />
+      <DataTableBulkActions table={table} teams={teams} units={units} />
     </div>
   )
 }

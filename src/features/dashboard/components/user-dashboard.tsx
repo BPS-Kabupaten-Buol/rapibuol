@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Activity, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -34,9 +34,32 @@ import { ActivityHeatmap } from './activity-heatmap'
 
 const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
+type Period = 'today' | 'week' | 'month' | 'custom-month'
+
+type PeriodTask = {
+  id: number
+  description: string
+  start_time: string | null
+  end_time: string | null
+  volume: number | null
+  is_done: boolean
+  unit: { name: string } | null
+}
+
+function getInitials(name?: string | null): string {
+  if (!name) return '?'
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+  return initials || '?'
+}
+
 export default function UserDashboard({ userId }: { userId: string }) {
   const currentYear = new Date().getFullYear()
-  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'custom-month'>('today')
+  const [period, setPeriod] = useState<Period>('today')
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState<number>(currentYear)
   // 1. Fetch Profile & Role
@@ -78,7 +101,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
       const startStr = format(start, 'yyyy-MM-dd')
       const endStr = format(end, 'yyyy-MM-dd')
 
-      const [periodCountRes, doneRes, totalRes] = await Promise.all([
+      const [periodCountRes, doneRes] = await Promise.all([
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
@@ -92,23 +115,14 @@ export default function UserDashboard({ userId }: { userId: string }) {
           .eq('is_done', true)
           .gte('date', startStr)
           .lte('date', endStr),
-        supabase
-          .from('activities')
-          .select('id', { count: 'exact' })
-          .eq('user_id', userId)
-          .gte('date', startStr)
-          .lte('date', endStr),
       ])
 
       const periodCount = periodCountRes.count || 0
       const doneCount = doneRes.count || 0
-      const weekOfMonth =
-        period === 'custom-month'
-          ? Math.ceil(
-              endOfMonth(new Date(selectedYear, selectedMonth, 1)).getDate() / 7
-            )
-          : Math.ceil(new Date().getDate() / 7)
-      const avgTasks = ((totalRes.count || 0) / weekOfMonth).toFixed(1)
+      const dayCount =
+        Math.round((Date.parse(endStr) - Date.parse(startStr)) / 86_400_000) + 1
+      const weekCount = Math.max(1, dayCount / 7)
+      const avgTasks = (periodCount / weekCount).toFixed(1)
 
       return {
         periodCount,
@@ -127,15 +141,16 @@ export default function UserDashboard({ userId }: { userId: string }) {
   })
 
   // 3. Fetch Heatmap Data (3 bulan terakhir)
-  const heatmapStart = subMonths(new Date(), 3)
+  const heatmapStartStr = format(subMonths(new Date(), 3), 'yyyy-MM-dd')
+  const heatmapStart = new Date(heatmapStartStr)
   const { data: heatmapData, isLoading: isLoadingHeatmap } = useQuery({
-    queryKey: ['heatmap', userId],
+    queryKey: ['heatmap', userId, heatmapStartStr],
     queryFn: async () => {
       const { data } = await supabase
         .from('activities')
         .select('date')
         .eq('user_id', userId)
-        .gte('date', format(heatmapStart, 'yyyy-MM-dd'))
+        .gte('date', heatmapStartStr)
 
       const counts =
         data?.reduce((acc: Record<string, number>, curr) => {
@@ -178,7 +193,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
         .eq('user_id', userId)
         .gte('date', startStr)
         .lte('date', endStr)
-      return data || []
+      return (data ?? []) as unknown as PeriodTask[]
     },
   })
 
@@ -188,10 +203,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
       <div className='flex flex-col items-start justify-between gap-4 rounded-lg border bg-card p-6 shadow-sm sm:flex-row sm:items-center'>
         <div className='flex items-center gap-4'>
           <Avatar className='h-16 w-16'>
-            <AvatarImage
-              src={`https://api.dicebear.com/7.x/initials/svg?seed=${profile?.name || 'User'}`}
-            />
-            <AvatarFallback>US</AvatarFallback>
+            <AvatarFallback>{getInitials(profile?.name)}</AvatarFallback>
           </Avatar>
           <div>
             <h1 className='text-2xl font-bold'>
@@ -215,7 +227,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
             Aktif
           </Badge>
           <div className='flex items-center gap-2'>
-            <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
+            <Select value={period} onValueChange={(val) => setPeriod(val as Period)}>
               <SelectTrigger className='w-[140px]'>
                 <SelectValue placeholder='Periode' />
               </SelectTrigger>
@@ -308,7 +320,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
               )}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Per minggu ({period === 'custom-month' ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}` : 'Bulan ini'})
+              Per minggu ({stats?.periodLabel ?? 'periode ini'})
             </p>
           </CardContent>
         </Card>
@@ -387,7 +399,7 @@ export default function UserDashboard({ userId }: { userId: string }) {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    periodTasks?.map((task: any) => (
+                    periodTasks?.map((task) => (
                       <TableRow key={task.id}>
                         <TableCell className='font-medium'>
                           {task.description}

@@ -1,4 +1,3 @@
-import * as cheerio from 'cheerio'
 import mammoth from 'mammoth'
 
 export interface ParsedActivityRow {
@@ -48,25 +47,82 @@ function parseTimeRange(timeStr: string): {
   return { startTime: null, endTime: null }
 }
 
+const MONTH_NAMES: Record<string, number> = {
+  januari: 1,
+  februari: 2,
+  maret: 3,
+  april: 4,
+  mei: 5,
+  juni: 6,
+  juli: 7,
+  agustus: 8,
+  september: 9,
+  oktober: 10,
+  november: 11,
+  desember: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  jun: 6,
+  jul: 7,
+  agu: 8,
+  agt: 8,
+  sep: 9,
+  okt: 10,
+  nov: 11,
+  des: 12,
+}
+
+function toIsoDate(year: string, month: string, day: string): string {
+  const yearNumber = Number(year)
+  const monthNumber = Number(month)
+  const dayNumber = Number(day)
+
+  if (!year || !Number.isFinite(yearNumber)) return ''
+  if (monthNumber < 1 || monthNumber > 12) return ''
+  if (dayNumber < 1 || dayNumber > 31) return ''
+
+  const date = new Date(Date.UTC(yearNumber, monthNumber - 1, dayNumber))
+  if (
+    date.getUTCFullYear() !== yearNumber ||
+    date.getUTCMonth() !== monthNumber - 1 ||
+    date.getUTCDate() !== dayNumber
+  ) {
+    return ''
+  }
+
+  return `${yearNumber}-${String(monthNumber).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
+}
+
 function parseDate(dateStr: string): string {
   const cleaned = dateStr.trim()
+  if (!cleaned) return ''
 
-  const formats = [
-    { regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/, order: [3, 1, 2] },
-    { regex: /(\d{1,2})-(\d{1,2})-(\d{4})/, order: [3, 1, 2] },
-    { regex: /(\d{4})-(\d{1,2})-(\d{1,2})/, order: [1, 2, 3] },
-    { regex: /(\d{1,2})\s+(\w+)\s+(\d{4})/, order: [3, 1, 2] },
-  ]
+  const isoMatch = cleaned.match(/(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (isoMatch) {
+    const iso = toIsoDate(isoMatch[1], isoMatch[2], isoMatch[3])
+    if (iso) return iso
+  }
 
-  for (const format of formats) {
-    const match = cleaned.match(format.regex)
-    if (match) {
-      const parts = format.order.map((i) => match[i].padStart(2, '0'))
-      return `${parts[0]}-${parts[1]}-${parts[2]}`
+  // Dokumen BPS memakai dd/mm/yyyy atau dd-mm-yyyy.
+  const numericMatch = cleaned.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
+  if (numericMatch) {
+    const iso = toIsoDate(numericMatch[3], numericMatch[2], numericMatch[1])
+    if (iso) return iso
+  }
+
+  // "5 Januari 2024"
+  const namedMatch = cleaned.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/)
+  if (namedMatch) {
+    const month = MONTH_NAMES[namedMatch[2].toLowerCase()]
+    if (month) {
+      const iso = toIsoDate(namedMatch[3], String(month), namedMatch[1])
+      if (iso) return iso
     }
   }
 
-  return cleaned
+  return ''
 }
 
 function isValidDate(dateStr: string): boolean {
@@ -91,24 +147,24 @@ function shouldSkipDescription(description: string): boolean {
 
 function extractTableData(htmlContent: string): ParsedActivityRow[] {
   const data: ParsedActivityRow[] = []
-  const $ = cheerio.load(htmlContent)
+  const doc = new DOMParser().parseFromString(htmlContent, 'text/html')
   let lastDate = ''
 
-  $('table').each((_index, element) => {
-    const $table = $(element)
-    const rows = $table.find('tr')
+  for (const table of doc.querySelectorAll('table')) {
+    const rows = table.querySelectorAll('tr')
 
-    if (rows.length < 2) return
+    if (rows.length < 2) continue
 
-    rows.each((rowIndex, element) => {
+    rows.forEach((row, rowIndex) => {
       if (rowIndex === 0) return
 
-      const $row = $(element)
-      const cells = $row.find('td, th')
+      const cells = row.querySelectorAll('td, th')
 
       if (cells.length === 0) return
 
-      const cellTexts = cells.map((_, cell) => $(cell).text().trim()).get()
+      const cellTexts = Array.from(cells, (cell) =>
+        (cell.textContent ?? '').trim()
+      )
 
       // Skip rows that only contain coordinates
       if (cellTexts.length === 1 && isCoordinateOnly(cellTexts[0])) {
@@ -187,7 +243,7 @@ function extractTableData(htmlContent: string): ParsedActivityRow[] {
         })
       }
     })
-  })
+  }
 
   return data
 }
@@ -202,7 +258,7 @@ function extractLineData(htmlContent: string): ParsedActivityRow[] {
   let currentDate = ''
 
   for (const line of lines) {
-    const dateMatch = line.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/)
+    const dateMatch = line.match(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/)
     if (dateMatch) {
       currentDate = parseDate(dateMatch[0])
       continue
@@ -213,7 +269,7 @@ function extractLineData(htmlContent: string): ParsedActivityRow[] {
       const { startTime, endTime } = parseTimeRange(timeMatches.join('-'))
       const desc = line
         .replace(/\d{1,2}:\d{2}/g, '')
-        .replace(/[^\w\s\-]/g, '')
+        .replace(/[^\w\s-]/g, '')
         .trim()
 
       if (desc && desc.length > 0 && !shouldSkipDescription(desc)) {
@@ -310,24 +366,6 @@ export async function parseDocxFromFile(file: File): Promise<ImportResult> {
       data: [],
       errors: [
         `Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      ],
-    }
-  }
-}
-
-export async function parseDocxFromPath(
-  filePath: string
-): Promise<ImportResult> {
-  try {
-    const fs = await import('fs')
-    const buffer = fs.readFileSync(filePath).buffer
-    return parseDocxFromBuffer(buffer)
-  } catch (error) {
-    return {
-      success: false,
-      data: [],
-      errors: [
-        `Failed to read file from path: ${error instanceof Error ? error.message : 'Unknown error'}`,
       ],
     }
   }

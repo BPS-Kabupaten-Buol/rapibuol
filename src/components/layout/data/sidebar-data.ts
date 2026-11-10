@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   LayoutDashboard,
   ListTodo,
   HelpCircle,
@@ -9,13 +10,12 @@ import {
   Users2,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
+import {
+  TEAM_MANAGEMENT_ROLES,
+  USER_MANAGEMENT_ROLES,
+} from '@/lib/roles'
 
 export const sidebarData: SidebarData = {
-  user: {
-    name: 'damarss',
-    email: 'damar.septianugraha@bps.go.id',
-    avatar: '/avatars/shadcn.jpg',
-  },
   navGroups: [
     {
       title: 'General',
@@ -31,16 +31,21 @@ export const sidebarData: SidebarData = {
           icon: ListTodo,
         },
         {
+          title: 'Kalender',
+          url: '/calendar',
+          icon: CalendarDays,
+        },
+        {
           title: 'Tim',
           url: '/teams',
           icon: Users2,
-          roles: [1, 2], // admin & kepala
+          roles: TEAM_MANAGEMENT_ROLES,
         },
         {
           title: 'Users',
           url: '/users',
           icon: Users,
-          roles: [1], // admin only
+          roles: USER_MANAGEMENT_ROLES,
         },
       ],
     },
@@ -51,11 +56,6 @@ export const sidebarData: SidebarData = {
           title: 'Settings',
           icon: Settings,
           items: [
-            // {
-            //   title: 'Profile',
-            //   url: '/settings',
-            //   icon: UserCog,
-            // },
             {
               title: 'Account',
               url: '/settings/account',
@@ -66,16 +66,6 @@ export const sidebarData: SidebarData = {
               url: '/settings/appearance',
               icon: Palette,
             },
-            // {
-            //   title: 'Notifications',
-            //   url: '/settings/notifications',
-            //   icon: Bell,
-            // },
-            // {
-            //   title: 'Display',
-            //   url: '/settings/display',
-            //   icon: Monitor,
-            // },
           ],
         },
         {

@@ -7,19 +7,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { MemberActivityDialog } from './member-activity-dialog'
 
 interface MemberProfile {
-  name?: string
-  email?: string
-  users_roles?: Array<{ roles?: Array<{ name?: string }> }>
+  name?: string | null
+  email?: string | null
+  users_roles?: Array<{ roles?: Array<{ name?: string }> }> | null
 }
 
 interface TeamMember {
-  user_id: number
+  user_id: string
   profiles?: MemberProfile | MemberProfile[] | null
 }
 
 interface Activity {
   id: number
-  user_id: number
+  user_id: string
   is_done: boolean
   description?: string
 }

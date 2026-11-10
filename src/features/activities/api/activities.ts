@@ -54,6 +54,20 @@ export async function updateActivity(
   return data
 }
 
+export async function updateActivitiesStatus(
+  ids: number[],
+  isDone: boolean
+): Promise<void> {
+  if (ids.length === 0) return
+
+  const { error } = await supabase
+    .from('activities')
+    .update({ is_done: isDone, updated_at: new Date().toISOString() })
+    .in('id', ids)
+
+  if (error) throw error
+}
+
 export async function deleteActivity(id: number): Promise<void> {
   const { error } = await supabase.from('activities').delete().eq('id', id)
 

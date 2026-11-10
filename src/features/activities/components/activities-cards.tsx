@@ -1,23 +1,22 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
 import {
   Clock,
   Package,
   Users,
   Link2,
-  CheckCheck,
-  Clock3,
   MoreHorizontal,
   Pencil,
   Trash2,
-  CheckCircle2,
   Circle,
+  CheckCircle2,
   Calendar,
+  CalendarPlus,
   MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,8 +26,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type Team } from '@/features/teams/api/teams'
 import { type Unit } from '@/features/units/api/units'
-import { updateActivity } from '../api/activities'
 import { type Activity } from '../data/schema'
+import { getActivityCalendarUrl } from '../lib/google-calendar-link'
+import { ActivityDoneToggle } from './activity-done-toggle'
 import { useActivities } from './activities-provider'
 
 interface ActivitiesCardsProps {
@@ -55,18 +55,18 @@ function calcDuration(start: string | null, end: string | null): string | null {
 
 // ─── Card Actions ────────────────────────────────────────────────────────────
 
-function CardActions({ activity }: { activity: Activity }) {
-  const { setOpen, setCurrentRow } = useActivities()
-  const queryClient = useQueryClient()
+function CardActions({
+  activity,
+  unitName,
+  teamName,
+}: {
+  activity: Activity
+  unitName?: string | null
+  teamName?: string | null
+}) {
+  const { setOpen, setCurrentRow, toggleDone } = useActivities()
   const isMobile = useIsMobile()
-
-  const toggleDone = useMutation({
-    mutationFn: () =>
-      updateActivity(activity.id, { is_done: !activity.is_done }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] })
-    },
-  })
+  const calendarUrl = getActivityCalendarUrl(activity, { unitName, teamName })
 
   return (
     <DropdownMenu modal={false}>
@@ -83,11 +83,10 @@ function CardActions({ activity }: { activity: Activity }) {
           <span className='sr-only'>Buka menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-48'>
+      <DropdownMenuContent align='end' className='w-56'>
         <DropdownMenuItem
           className='cursor-pointer'
-          onClick={() => toggleDone.mutate()}
-          disabled={toggleDone.isPending}
+          onClick={() => toggleDone(activity)}
         >
           {activity.is_done ? (
             <>
@@ -112,6 +111,19 @@ function CardActions({ activity }: { activity: Activity }) {
           <Pencil className='mr-2 h-4 w-4' />
           Ubah Aktivitas
         </DropdownMenuItem>
+        {calendarUrl && (
+          <DropdownMenuItem asChild className='cursor-pointer'>
+            <a
+              href={calendarUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              onClick={(event) => event.stopPropagation()}
+            >
+              <CalendarPlus className='mr-2 h-4 w-4 text-blue-500' />
+              Tambah ke Google Calendar
+            </a>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           className='cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive'
           onClick={() => {
@@ -128,6 +140,7 @@ function CardActions({ activity }: { activity: Activity }) {
 }
 
 export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
+  const { setDetailActivity, selectionMode } = useActivities()
   const rows = table.getRowModel().rows
 
   if (rows.length === 0) {
@@ -154,21 +167,32 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
         return (
           <div
             key={row.id}
+            onClick={(event) => {
+              const target = event.target as HTMLElement
+              if (target.closest('a, button, [role="menu"], [role="checkbox"]'))
+                return
+              if (selectionMode) {
+                row.toggleSelected()
+                return
+              }
+              setDetailActivity(activity)
+            }}
             className={cn(
-              'group relative flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30',
+              'group relative flex cursor-pointer items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30',
               i === 0 && 'rounded-t-xl',
               i === rows.length - 1 && 'rounded-b-xl'
             )}
           >
-            {/* Accent dot */}
-            <div
-              className={cn(
-                'mt-[7px] h-2 w-2 shrink-0 rounded-full ring-2 ring-offset-2',
-                isDone
-                  ? 'bg-emerald-400 ring-emerald-200'
-                  : 'bg-amber-400 ring-amber-200'
-              )}
-            />
+            {selectionMode ? (
+              <Checkbox
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                aria-label='Pilih aktivitas'
+                className='mt-0.5'
+              />
+            ) : (
+              <ActivityDoneToggle activity={activity} className='mt-0.5' />
+            )}
 
             <div className='flex min-w-0 flex-1 flex-col gap-2'>
               {/* Time + Duration + Status */}
@@ -210,26 +234,15 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
                     {duration}
                   </span>
                 )}
-
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold',
-                    isDone
-                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
-                      : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
-                  )}
-                >
-                  {isDone ? (
-                    <CheckCheck className='h-3 w-3' />
-                  ) : (
-                    <Clock3 className='h-3 w-3' />
-                  )}
-                  {isDone ? 'Selesai' : 'Belum Selesai'}
-                </span>
               </div>
 
               {/* Description */}
-              <p className={cn('text-[15px] leading-snug font-semibold')}>
+              <p
+                className={cn(
+                  'text-[15px] leading-snug font-semibold break-words',
+                  isDone && 'text-muted-foreground line-through'
+                )}
+              >
                 {activity.description}
               </p>
 
@@ -275,7 +288,11 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
             </div>
 
             {/* Actions */}
-            <CardActions activity={activity} />
+            <CardActions
+              activity={activity}
+              unitName={activity.unit ? unitName : null}
+              teamName={activity.assignor ? teamName : null}
+            />
           </div>
         )
       })}

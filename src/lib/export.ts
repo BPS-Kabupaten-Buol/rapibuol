@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import * as XLSX from 'xlsx'
 
-type ExportColumn<T> = {
+export type ExportColumn<T> = {
   key: keyof T
   header: string
 }

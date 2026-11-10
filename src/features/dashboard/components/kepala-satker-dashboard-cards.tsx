@@ -10,24 +10,24 @@ import { MemberActivityDialog } from './member-activity-dialog'
 
 interface Activity {
   id: number
-  user_id: number
+  user_id: string
   is_done: boolean
   date: string
   description?: string
 }
 
 interface UserProfile {
-  id: number
-  name?: string
-  email?: string
-  users_teams?: Array<{ teams?: { name?: string } }>
-  users_roles?: Array<{ roles?: { name?: string } }>
+  id: string
+  name?: string | null
+  email?: string | null
+  users_teams?: Array<{ teams?: { name?: string } | null }> | null
+  users_roles?: Array<{ roles?: { name?: string } | null }> | null
 }
 
 interface KepalaSatkerCardsProps {
   users: UserProfile[]
   activities: Activity[]
-  activeUsersThisPeriod: Set<number>
+  activeUsersThisPeriod: Set<string>
   isLoading: boolean
   periodLabel?: string
 }
@@ -46,7 +46,7 @@ export function KepalaSatkerCards({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string>('')
-  const [expandedCard, setExpandedCard] = useState<number | null>(null)
+  const [expandedCard, setExpandedCard] = useState<string | null>(null)
 
   const filteredUsers = useMemo(() => {
     let result = users
@@ -90,7 +90,7 @@ export function KepalaSatkerCards({
 
         <Tabs
           value={reportFilter}
-          onValueChange={(v: any) => setReportFilter(v)}
+          onValueChange={(v) => setReportFilter(v as 'all' | 'sudah' | 'belum')}
           className='mb-3'
         >
           <TabsList className='w-full'>

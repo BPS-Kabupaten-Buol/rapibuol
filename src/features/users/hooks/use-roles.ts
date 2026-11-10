@@ -1,31 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { getErrorMessage } from '@/lib/handle-server-error'
 import { supabase } from '@/lib/supabase'
 import type { Role } from '../data/schema'
 
+type RoleRow = {
+  id: number
+  name: string
+  description: string | null
+  created_at: string
+}
+
+async function fetchRoles(): Promise<Role[]> {
+  const { data, error } = await supabase
+    .from('roles')
+    .select('id, name, description, created_at')
+    .order('name')
+
+  if (error) throw error
+
+  return (data as RoleRow[]).map((role) => ({
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    createdAt: new Date(role.created_at),
+  }))
+}
+
 export function useRoles() {
-  const [roles, setRoles] = useState<Role[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const query = useQuery({
+    queryKey: ['roles'],
+    queryFn: fetchRoles,
+  })
 
-  useEffect(() => {
-    async function fetchRoles() {
-      try {
-        const { data, error } = await supabase
-          .from('roles')
-          .select('*')
-          .order('name')
-
-        if (error) throw error
-        setRoles(data || [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch roles')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchRoles()
-  }, [])
-
-  return { roles, isLoading, error }
+  return {
+    roles: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error ? getErrorMessage(query.error) : null,
+  }
 }
