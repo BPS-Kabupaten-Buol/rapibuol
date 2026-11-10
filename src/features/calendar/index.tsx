@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
+import { NotificationBell } from '@/components/notification-bell'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -32,14 +33,17 @@ import {
   ActivitiesProvider,
   useActivities,
 } from '@/features/activities/components/activities-provider'
+import { useMoveActivity } from '@/features/activities/hooks/use-move-activity'
 import { MonthGrid } from './components/month-grid'
 import { groupActivitiesByDay } from './lib/group-activities-by-day'
 
 function CalendarContent() {
   const { user } = useAuth()
-  const { setOpen, setDefaultDate, setDetailActivity } = useActivities()
+  const { setOpen, setDefaultDate, setDefaultQuadrant, setDetailActivity } =
+    useActivities()
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const moveActivity = useMoveActivity()
 
   const { data: activities = [], isLoading } = useQuery({
     queryKey: ['activities', user?.id],
@@ -59,6 +63,7 @@ function CalendarContent() {
 
   const handleCreateForDay = () => {
     setDefaultDate(selectedDay ?? null)
+    setDefaultQuadrant(null)
     setOpen('create')
     setSelectedDay(null)
   }
@@ -68,6 +73,7 @@ function CalendarContent() {
       <Header fixed>
         <Search />
         <div className='ms-auto flex items-center space-x-4'>
+          <NotificationBell />
           <ThemeSwitch />
           <ConfigDrawer />
           <ProfileDropdown />
@@ -120,7 +126,11 @@ function CalendarContent() {
             <Button
               size='sm'
               className='gap-1'
-              onClick={() => setOpen('create')}
+              onClick={() => {
+                setDefaultDate(null)
+                setDefaultQuadrant(null)
+                setOpen('create')
+              }}
             >
               <Plus className='h-4 w-4' />
               <span className='max-sm:hidden'>Aktivitas</span>
@@ -129,8 +139,13 @@ function CalendarContent() {
 
           <MonthGrid
             month={month}
+            activities={activities}
             activitiesByDay={activitiesByDay}
             onSelectDay={setSelectedDay}
+            onSelectActivity={setDetailActivity}
+            onMoveActivity={(activity, deltaDays) =>
+              moveActivity.mutate({ activity, deltaDays })
+            }
           />
         </Card>
 

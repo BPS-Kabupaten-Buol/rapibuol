@@ -1,12 +1,4 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import {
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import {
@@ -29,12 +21,18 @@ import {
   Table as TableIcon,
   X,
 } from 'lucide-react'
-import { type DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 // import { useIsMobile } from '@/hooks/use-mobile'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -46,9 +44,15 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { DateRangePicker } from '@/components/date-range-picker'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
+import {
+  getMonthRange,
+  getPresetRange,
+  isActivityWithinRange,
+  type DatePeriod,
+  type DatePreset,
+} from '../lib/activity-date-range'
 import { type Activity } from '../data/schema'
 import { exportActivities } from '../lib/export-activities'
 import { ActivitiesCards } from './activities-cards'
@@ -63,7 +67,7 @@ type DataTableProps = {
   isLoading?: boolean
 }
 
-type DateFilter = 'today' | 'week' | 'month'
+type DateFilter = DatePreset
 
 const DATE_FILTER_LABELS: Record<DateFilter, string> = {
   today: 'Hari Ini',
@@ -71,20 +75,20 @@ const DATE_FILTER_LABELS: Record<DateFilter, string> = {
   month: 'Bulan Ini',
 }
 
-function getDateRange(filter: DateFilter): { start: Date; end: Date } {
-  const now = new Date()
-  switch (filter) {
-    case 'today':
-      return { start: startOfDay(now), end: endOfDay(now) }
-    case 'week':
-      return {
-        start: startOfWeek(now, { weekStartsOn: 1 }),
-        end: endOfWeek(now, { weekStartsOn: 1 }),
-      }
-    case 'month':
-      return { start: startOfMonth(now), end: endOfMonth(now) }
-  }
-}
+const MONTH_LABELS = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+]
 
 export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   const { setDetailActivity, selectionMode, setSelectionMode } = useActivities()
@@ -102,6 +106,10 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   // Date preset filter state - default: today
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
 
+  // Filter bulan/tahun; mengalahkan preset selama dipilih.
+  const [period, setPeriod] = useState<DatePeriod | null>(null)
+  const [periodYear, setPeriodYear] = useState(() => new Date().getFullYear())
+
   // const isMobile = useIsMobile()
 
   // View mode state - default is card for mobile, table for desktop
@@ -112,31 +120,52 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
   //   setViewMode(isMobile ? 'card' : 'table')
   // }, [isMobile])
 
-  // Manual date range state (overrides preset when filled)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
-
   const handleFilterChange = useCallback((filter: DateFilter) => {
     setDateFilter(filter)
-    setDateRange(undefined)
+    setPeriod(null)
   }, [])
 
-  // Filter data: manual range takes priority over preset
-  const filteredData = useMemo(() => {
-    if (dateRange?.from) {
-      const from = dateRange.from
-      const to = dateRange.to
-      return data.filter((task) => {
-        const taskDate = new Date(task.date)
-        if (!to) return taskDate >= startOfDay(from)
-        return taskDate >= startOfDay(from) && taskDate <= endOfDay(to)
-      })
+  const handleMonthChange = useCallback(
+    (value: string) => {
+      const month = Number(value)
+      if (!Number.isFinite(month) || month < 1 || month > 12) return
+
+      setPeriod({ year: periodYear, month })
+    },
+    [periodYear]
+  )
+
+  const handleYearChange = useCallback((value: string) => {
+    const year = Number(value)
+    if (!Number.isFinite(year)) return
+
+    setPeriodYear(year)
+    setPeriod((current) => (current ? { ...current, year } : current))
+  }, [])
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([new Date().getFullYear()])
+
+    for (const activity of data) {
+      const startYear = Number(activity.date.slice(0, 4))
+      if (startYear > 1900) years.add(startYear)
+
+      if (activity.end_date) {
+        const endYear = Number(activity.end_date.slice(0, 4))
+        if (endYear > 1900) years.add(endYear)
+      }
     }
-    const { start, end } = getDateRange(dateFilter)
-    return data.filter((task) => {
-      const taskDate = new Date(task.date)
-      return taskDate >= start && taskDate <= end
-    })
-  }, [data, dateFilter, dateRange])
+
+    return Array.from(years).sort((a, b) => b - a)
+  }, [data])
+
+  // Aktivitas ikut tampil kalau rentangnya beririsan dengan filter, jadi
+  // kegiatan yang berakhir hari ini tetap muncul di "Hari Ini".
+  const filteredData = useMemo(() => {
+    const range = period ? getMonthRange(period) : getPresetRange(dateFilter)
+
+    return data.filter((activity) => isActivityWithinRange(activity, range))
+  }, [data, dateFilter, period])
 
   // Local UI-only states
   const [rowSelection, setRowSelection] = useState({})
@@ -310,16 +339,14 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
                   <Button
                     key={filter}
                     variant={
-                      dateFilter === filter && !dateRange?.from
-                        ? 'default'
-                        : 'ghost'
+                      dateFilter === filter && !period ? 'default' : 'ghost'
                     }
                     size='sm'
                     className='h-7 px-3 text-xs'
                     onClick={() => handleFilterChange(filter)}
                   >
                     {DATE_FILTER_LABELS[filter]}
-                    {dateFilter === filter && !dateRange?.from && (
+                    {dateFilter === filter && !period && (
                       <Badge
                         variant='secondary'
                         className='ml-1.5 h-4 px-1 text-[10px]'
@@ -331,28 +358,59 @@ export function ActivitiesTable({ data, isLoading }: DataTableProps) {
                 )
               )}
             </div>
-            <DateRangePicker
-              date={dateRange}
-              onSelect={(range) => {
-                setDateRange(range)
-                if (range?.from) {
-                  setDateFilter('today')
-                }
-              }}
-            />
-            {dateRange?.from && (
-              <Button
-                variant='ghost'
-                size='sm'
-                className='h-8 px-2 text-xs text-muted-foreground'
-                onClick={() => {
-                  setDateRange(undefined)
-                  setDateFilter('today')
+
+            <div className='flex items-center gap-1.5'>
+              <Select
+                value={period ? String(period.month) : 'all'}
+                onValueChange={(value) => {
+                  if (value === 'all') {
+                    setPeriod(null)
+                    return
+                  }
+
+                  handleMonthChange(value)
                 }}
               >
-                Atur Ulang
-              </Button>
-            )}
+                <SelectTrigger size='sm' className='h-8 w-[8.75rem] text-xs'>
+                  <SelectValue placeholder='Pilih bulan' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='all'>Semua bulan</SelectItem>
+                  {MONTH_LABELS.map((label, index) => (
+                    <SelectItem key={label} value={String(index + 1)}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={String(periodYear)}
+                onValueChange={handleYearChange}
+              >
+                <SelectTrigger size='sm' className='h-8 w-[5.5rem] text-xs'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {period && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='h-8 px-2 text-xs text-muted-foreground'
+                  onClick={() => setPeriod(null)}
+                >
+                  Atur Ulang
+                </Button>
+              )}
+            </div>
           </div>
         }
       />

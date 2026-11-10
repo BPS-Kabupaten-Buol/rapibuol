@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
+import { NotificationBell } from '@/components/notification-bell'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -22,10 +23,11 @@ import TeamLeaderDashboard from './components/team-leader-dashboard'
 import UserDashboard from './components/user-dashboard'
 
 function DashboardFAB() {
-  const { setOpen, setDefaultDate } = useActivities()
+  const { setOpen, setDefaultDate, setDefaultQuadrant } = useActivities()
 
   const openCreate = () => {
     setDefaultDate(null)
+    setDefaultQuadrant(null)
     setOpen('create')
   }
 
@@ -82,6 +84,7 @@ function DashboardContent() {
       <Header>
         <Search />
         <div className='ms-auto flex items-center space-x-4'>
+          <NotificationBell />
           <ThemeSwitch />
           <ConfigDrawer />
           <ProfileDropdown />

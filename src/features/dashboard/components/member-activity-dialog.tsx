@@ -8,7 +8,6 @@ import {
   LayoutGrid,
   Table as TableIcon,
 } from 'lucide-react'
-import { type DateRange } from 'react-day-picker'
 import { exportToXlsx } from '@/lib/export'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -22,6 +21,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,15 +36,36 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DateRangePicker } from '@/components/date-range-picker'
+import {
+  getMonthRange,
+  getPresetRange,
+  overlapsIsoRange,
+  type DatePeriod,
+  type DatePreset,
+} from '@/features/activities/lib/activity-date-range'
 
-type DateFilter = 'today' | 'week' | 'month'
+type DateFilter = DatePreset
 
 const DATE_FILTER_LABELS: Record<DateFilter, string> = {
   today: 'Hari Ini',
   week: 'Minggu Ini',
   month: 'Bulan Ini',
 }
+
+const MONTH_LABELS = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+]
 
 const EXPORT_COLUMNS = [
   { key: 'date' as const, header: 'Tanggal' },
@@ -52,43 +79,6 @@ const EXPORT_COLUMNS = [
   { key: 'link_bukti_dukung' as const, header: 'Link Bukti Dukung' },
   { key: 'is_done' as const, header: 'Status' },
 ]
-
-function getDateRange(filter: DateFilter): { start: Date; end: Date } {
-  const now = new Date()
-  switch (filter) {
-    case 'today':
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-        end: new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          23,
-          59,
-          59
-        ),
-      }
-    case 'week': {
-      const day = now.getDay()
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-      const start = new Date(now.getFullYear(), now.getMonth(), diff)
-      const end = new Date(
-        start.getFullYear(),
-        start.getMonth(),
-        start.getDate() + 6,
-        23,
-        59,
-        59
-      )
-      return { start, end }
-    }
-    case 'month':
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
-      }
-  }
-}
 
 interface MemberActivityDialogProps {
   userId: string | null
@@ -104,12 +94,28 @@ export function MemberActivityDialog({
   onOpenChange,
 }: MemberActivityDialogProps) {
   const [dateFilter, setDateFilter] = useState<DateFilter>('month')
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const [period, setPeriod] = useState<DatePeriod | null>(null)
+  const [periodYear, setPeriodYear] = useState(() => new Date().getFullYear())
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
 
   const handleFilterChange = (filter: DateFilter) => {
     setDateFilter(filter)
-    setDateRange(undefined)
+    setPeriod(null)
+  }
+
+  const handleMonthChange = (value: string) => {
+    const month = Number(value)
+    if (!Number.isFinite(month) || month < 1 || month > 12) return
+
+    setPeriod({ year: periodYear, month })
+  }
+
+  const handleYearChange = (value: string) => {
+    const year = Number(value)
+    if (!Number.isFinite(year)) return
+
+    setPeriodYear(year)
+    setPeriod((current) => (current ? { ...current, year } : current))
   }
 
   const { data: activities = [], isLoading } = useQuery({
@@ -129,50 +135,33 @@ export function MemberActivityDialog({
     enabled: !!userId && isOpen,
   })
 
-  const filteredData = useMemo(() => {
-    if (dateRange?.from) {
-      const from = dateRange.from
-      const to = dateRange.to
-      return activities.filter((task) => {
-        const taskDate = new Date(task.date)
-        if (!to) {
-          const start = new Date(
-            from.getFullYear(),
-            from.getMonth(),
-            from.getDate()
-          )
-          const end = new Date(
-            from.getFullYear(),
-            from.getMonth(),
-            from.getDate(),
-            23,
-            59,
-            59
-          )
-          return taskDate >= start && taskDate <= end
-        }
-        const start = new Date(
-          from.getFullYear(),
-          from.getMonth(),
-          from.getDate()
-        )
-        const end = new Date(
-          to.getFullYear(),
-          to.getMonth(),
-          to.getDate(),
-          23,
-          59,
-          59
-        )
-        return taskDate >= start && taskDate <= end
-      })
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([new Date().getFullYear()])
+
+    for (const activity of activities) {
+      const startYear = Number(activity.date.slice(0, 4))
+      if (startYear > 1900) years.add(startYear)
+
+      if (activity.end_date) {
+        const endYear = Number(activity.end_date.slice(0, 4))
+        if (endYear > 1900) years.add(endYear)
+      }
     }
-    const { start, end } = getDateRange(dateFilter)
-    return activities.filter((task) => {
-      const taskDate = new Date(task.date)
-      return taskDate >= start && taskDate <= end
-    })
-  }, [activities, dateFilter, dateRange])
+
+    return Array.from(years).sort((a, b) => b - a)
+  }, [activities])
+
+  // Rentang yang beririsan ikut tampil, jadi kegiatan yang berakhir di periode
+  // ini tetap muncul walau mulai sebelum periode.
+  const filteredData = useMemo(() => {
+    const range = period ? getMonthRange(period) : getPresetRange(dateFilter)
+    const startStr = format(range.start, 'yyyy-MM-dd')
+    const endStr = format(range.end, 'yyyy-MM-dd')
+
+    return activities.filter((activity) =>
+      overlapsIsoRange(activity.date, activity.end_date, startStr, endStr)
+    )
+  }, [activities, dateFilter, period])
 
   const handleExport = () => {
     const exportData = filteredData.map((a) => ({
@@ -208,9 +197,7 @@ export function MemberActivityDialog({
                   <Button
                     key={filter}
                     variant={
-                      dateFilter === filter && !dateRange?.from
-                        ? 'default'
-                        : 'ghost'
+                      dateFilter === filter && !period ? 'default' : 'ghost'
                     }
                     size='sm'
                     className='h-7 px-3 text-xs'
@@ -221,24 +208,50 @@ export function MemberActivityDialog({
                 )
               )}
             </div>
-            <DateRangePicker
-              date={dateRange}
-              onSelect={(range: DateRange | undefined) => {
-                setDateRange(range)
-                if (range?.from) {
-                  setDateFilter('month')
+
+            <Select
+              value={period ? String(period.month) : 'all'}
+              onValueChange={(value) => {
+                if (value === 'all') {
+                  setPeriod(null)
+                  return
                 }
+
+                handleMonthChange(value)
               }}
-            />
-            {dateRange?.from && (
+            >
+              <SelectTrigger size='sm' className='h-8 w-[8.75rem] text-xs'>
+                <SelectValue placeholder='Pilih bulan' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>Semua bulan</SelectItem>
+                {MONTH_LABELS.map((label, index) => (
+                  <SelectItem key={label} value={String(index + 1)}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={String(periodYear)} onValueChange={handleYearChange}>
+              <SelectTrigger size='sm' className='h-8 w-[5.5rem] text-xs'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {period && (
               <Button
                 variant='ghost'
                 size='sm'
                 className='h-8 px-2 text-xs text-muted-foreground'
-                onClick={() => {
-                  setDateRange(undefined)
-                  setDateFilter('month')
-                }}
+                onClick={() => setPeriod(null)}
               >
                 Atur Ulang
               </Button>

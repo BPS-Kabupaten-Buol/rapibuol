@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/table'
 import { MemberActivityDialog } from './member-activity-dialog'
 import { TeamLeaderCards } from './team-leader-dashboard-cards'
+import { buildActivityOverlapOr } from '@/features/activities/lib/activity-date-range'
 
 interface Team {
   id: number
@@ -135,8 +136,8 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
         .from('activities')
         .select('*')
         .in('user_id', memberIds)
-        .gte('date', startStr)
         .lte('date', endStr)
+        .or(buildActivityOverlapOr(startStr))
 
       return data || []
     },
@@ -157,38 +158,11 @@ export default function TeamLeaderDashboard({ teams }: { teams: Team[] }) {
           ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}`
           : 'Bulan Ini'
 
-  // Calculate active members based on period
-  const getActiveMembersForPeriod = () => {
-    const today = new Date()
-    let start: Date
-    let end: Date
-
-    if (period === 'today') {
-      start = today
-      end = today
-    } else if (period === 'week') {
-      start = startOfWeek(today, { weekStartsOn: 1 })
-      end = endOfWeek(today, { weekStartsOn: 1 })
-    } else if (period === 'custom-month') {
-      const customDate = new Date(selectedYear, selectedMonth, 1)
-      start = startOfMonth(customDate)
-      end = endOfMonth(customDate)
-    } else {
-      start = startOfMonth(today)
-      end = endOfMonth(today)
-    }
-
-    const startStr = format(start, 'yyyy-MM-dd')
-    const endStr = format(end, 'yyyy-MM-dd')
-
-    return new Set(
-      activities
-        .filter((a) => a.date >= startStr && a.date <= endStr)
-        .map((a) => a.user_id)
-    )
-  }
-
-  const activeMembersThisPeriod = getActiveMembersForPeriod()
+  // Aktivitas sudah difilter per periode oleh query, termasuk kegiatan yang
+  // rentangnya beririsan dengan periode meski mulai sebelum periode.
+  const activeMembersThisPeriod = new Set(
+    activities.map((a) => a.user_id)
+  )
 
   // Who hasn't reported in this period
   const missingReportMembers = members.filter(

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useActivities } from './activities-provider'
 
 export function ActivitiesPrimaryButtons() {
-  const { setOpen, setDefaultDate } = useActivities()
+  const { setOpen, setDefaultDate, setDefaultQuadrant } = useActivities()
   return (
     <div className='flex min-w-0 gap-2'>
       <Button
@@ -18,6 +18,7 @@ export function ActivitiesPrimaryButtons() {
         className='min-w-0 shrink-0 gap-1'
         onClick={() => {
           setDefaultDate(null)
+          setDefaultQuadrant(null)
           setOpen('create')
         }}
       >

@@ -32,7 +32,11 @@ import { SelectDropdown } from '@/components/select-dropdown'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
 import { createActivity, updateActivity } from '../api/activities'
-import { type Activity } from '../data/schema'
+import { type Activity, type ActivityQuadrant } from '../data/schema'
+import {
+  isMissingQuadrantColumn,
+  MISSING_QUADRANT_COLUMN_HINT,
+} from '../lib/quadrant-column-error'
 
 type ActivityMutateDrawerProps = {
   open: boolean
@@ -40,6 +44,8 @@ type ActivityMutateDrawerProps = {
   currentRow?: Activity
   /** Prefilled date when creating from a specific day. */
   defaultDate?: Date
+  /** Kuadran board tempat aktivitas baru dibuat. */
+  defaultQuadrant?: ActivityQuadrant | null
 }
 
 const formSchema = z.object({
@@ -68,6 +74,7 @@ export function ActivitiesMutateDrawer({
   onOpenChange,
   currentRow,
   defaultDate,
+  defaultQuadrant,
 }: ActivityMutateDrawerProps) {
   const isUpdate = !!currentRow
   const queryClient = useQueryClient()
@@ -116,6 +123,7 @@ export function ActivitiesMutateDrawer({
         user_id: newActivity.user_id,
         link_bukti_dukung: newActivity.link_bukti_dukung,
         coordinates: newActivity.coordinates,
+        quadrant: newActivity.quadrant ?? null,
         created_at: new Date().toISOString(),
         updated_at: null,
       }
@@ -156,7 +164,7 @@ export function ActivitiesMutateDrawer({
 
       return { previousActivities, previousTodayTasks, previousStats }
     },
-    onError: (_err, _newActivity, context) => {
+    onError: (err, _newActivity, context) => {
       if (context?.previousActivities && user) {
         queryClient.setQueryData(
           ['activities', user.id],
@@ -172,7 +180,11 @@ export function ActivitiesMutateDrawer({
       if (context?.previousStats && user) {
         queryClient.setQueryData(['stats', user.id], context.previousStats)
       }
-      toast.error('Gagal membuat aktivitas')
+      toast.error(
+        isMissingQuadrantColumn(err)
+          ? MISSING_QUADRANT_COLUMN_HINT
+          : 'Gagal membuat aktivitas'
+      )
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] })
@@ -259,7 +271,10 @@ export function ActivitiesMutateDrawer({
     if (isUpdate && currentRow) {
       updateMutation.mutate({ id: currentRow.id, data: payload })
     } else {
-      createMutation.mutate(payload)
+      createMutation.mutate({
+        ...payload,
+        quadrant: defaultQuadrant ?? null,
+      })
     }
 
     onOpenChange(false)

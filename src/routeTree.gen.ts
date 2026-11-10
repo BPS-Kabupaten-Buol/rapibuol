@@ -26,6 +26,7 @@ import { Route as AuthenticatedTeamsIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedHelpCenterIndexRouteImport } from './routes/_authenticated/help-center/index'
 import { Route as AuthenticatedCalendarIndexRouteImport } from './routes/_authenticated/calendar/index'
+import { Route as AuthenticatedBoardIndexRouteImport } from './routes/_authenticated/board/index'
 import { Route as AuthenticatedActivitiesIndexRouteImport } from './routes/_authenticated/activities/index'
 import { Route as AuthenticatedSettingsNotificationsRouteImport } from './routes/_authenticated/settings/notifications'
 import { Route as AuthenticatedSettingsDisplayRouteImport } from './routes/_authenticated/settings/display'
@@ -122,6 +123,11 @@ const AuthenticatedCalendarIndexRoute =
     path: '/calendar/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedBoardIndexRoute = AuthenticatedBoardIndexRouteImport.update({
+  id: '/board/',
+  path: '/board/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedActivitiesIndexRoute =
   AuthenticatedActivitiesIndexRouteImport.update({
     id: '/activities/',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/activities/': typeof AuthenticatedActivitiesIndexRoute
+  '/board/': typeof AuthenticatedBoardIndexRoute
   '/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/activities': typeof AuthenticatedActivitiesIndexRoute
+  '/board': typeof AuthenticatedBoardIndexRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/help-center': typeof AuthenticatedHelpCenterIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/display': typeof AuthenticatedSettingsDisplayRoute
   '/_authenticated/settings/notifications': typeof AuthenticatedSettingsNotificationsRoute
   '/_authenticated/activities/': typeof AuthenticatedActivitiesIndexRoute
+  '/_authenticated/board/': typeof AuthenticatedBoardIndexRoute
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/help-center/': typeof AuthenticatedHelpCenterIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/activities/'
+    | '/board/'
     | '/calendar/'
     | '/help-center/'
     | '/settings/'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/settings/display'
     | '/settings/notifications'
     | '/activities'
+    | '/board'
     | '/calendar'
     | '/help-center'
     | '/settings'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/display'
     | '/_authenticated/settings/notifications'
     | '/_authenticated/activities/'
+    | '/_authenticated/board/'
     | '/_authenticated/calendar/'
     | '/_authenticated/help-center/'
     | '/_authenticated/settings/'
@@ -453,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/board/': {
+      id: '/_authenticated/board/'
+      path: '/board'
+      fullPath: '/board/'
+      preLoaderRoute: typeof AuthenticatedBoardIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/activities/': {
       id: '/_authenticated/activities/'
       path: '/activities'
@@ -534,6 +553,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTeamsTeamIdRouteRoute: typeof AuthenticatedTeamsTeamIdRouteRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedActivitiesIndexRoute: typeof AuthenticatedActivitiesIndexRoute
+  AuthenticatedBoardIndexRoute: typeof AuthenticatedBoardIndexRoute
   AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
   AuthenticatedHelpCenterIndexRoute: typeof AuthenticatedHelpCenterIndexRoute
   AuthenticatedTeamsIndexRoute: typeof AuthenticatedTeamsIndexRoute
@@ -546,6 +566,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTeamsTeamIdRouteRoute: AuthenticatedTeamsTeamIdRouteRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedActivitiesIndexRoute: AuthenticatedActivitiesIndexRoute,
+  AuthenticatedBoardIndexRoute: AuthenticatedBoardIndexRoute,
   AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
   AuthenticatedHelpCenterIndexRoute: AuthenticatedHelpCenterIndexRoute,
   AuthenticatedTeamsIndexRoute: AuthenticatedTeamsIndexRoute,

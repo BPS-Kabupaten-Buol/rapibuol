@@ -15,6 +15,7 @@ export function ActivitiesDialogs() {
     currentRow,
     setCurrentRow,
     defaultDate,
+    defaultQuadrant,
     detailActivity,
     setDetailActivity,
   } = useActivities()
@@ -44,13 +45,19 @@ export function ActivitiesDialogs() {
           setCurrentRow(activity)
           setOpen('update')
         }}
+        onDelete={(activity) => {
+          setDetailActivity(null)
+          setCurrentRow(activity)
+          setOpen('delete')
+        }}
       />
 
       <ActivitiesMutateDrawer
-        key={`activity-create-${defaultDate ? format(defaultDate, 'yyyy-MM-dd') : 'today'}`}
+        key={`activity-create-${defaultDate ? format(defaultDate, 'yyyy-MM-dd') : 'today'}-${defaultQuadrant ?? 'none'}`}
         open={open === 'create'}
         onOpenChange={() => setOpen('create')}
         defaultDate={defaultDate ?? undefined}
+        defaultQuadrant={defaultQuadrant}
       />
 
       <ActivitiesImportDialog

@@ -50,6 +50,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KepalaSatkerCards } from './kepala-satker-dashboard-cards'
 import { MemberActivityDialog } from './member-activity-dialog'
+import { buildActivityOverlapOr } from '@/features/activities/lib/activity-date-range'
 
 const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -125,8 +126,8 @@ export default function KepalaSatkerDashboard() {
         const { data } = await supabase
           .from('activities')
           .select('*, assignor_team:teams(name)')
-          .gte('date', startStr)
           .lte('date', endStr)
+          .or(buildActivityOverlapOr(startStr))
         return (data ?? []) as unknown as SatkerActivity[]
       },
     }
@@ -158,30 +159,9 @@ export default function KepalaSatkerDashboard() {
           ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}`
           : 'Bulan Ini'
 
-  // 3. Active users for current period
-  const periodStart =
-    period === 'today'
-      ? new Date()
-      : period === 'week'
-        ? startOfWeek(new Date(), { weekStartsOn: 1 })
-        : period === 'custom-month'
-          ? startOfMonth(new Date(selectedYear, selectedMonth, 1))
-          : startOfMonth(new Date())
-  const periodEnd =
-    period === 'today'
-      ? new Date()
-      : period === 'week'
-        ? endOfWeek(new Date(), { weekStartsOn: 1 })
-        : period === 'custom-month'
-          ? endOfMonth(new Date(selectedYear, selectedMonth, 1))
-          : endOfMonth(new Date())
-  const periodStartStr = format(periodStart, 'yyyy-MM-dd')
-  const periodEndStr = format(periodEnd, 'yyyy-MM-dd')
-  const activeUsersThisPeriodList = allActivities.filter(
-    (a) => a.date >= periodStartStr && a.date <= periodEndStr
-  )
+  // 3. Active users for current period (query sudah memfilter rentangnya)
   const activeUsersThisPeriod = new Set(
-    activeUsersThisPeriodList.map((a) => a.user_id)
+    allActivities.map((a) => a.user_id)
   )
 
   // 4. Transform data for Bar Chart (Tim teraktif) - use period-filtered activities

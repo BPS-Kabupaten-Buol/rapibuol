@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   format,
+  parseISO,
   startOfMonth,
   endOfMonth,
   subMonths,
@@ -13,7 +14,7 @@ import { Activity, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -30,6 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { buildActivityOverlapOr } from '@/features/activities/lib/activity-date-range'
+import { countActivitiesPerDay } from '@/features/activities/lib/count-activities-per-day'
 import { ActivityHeatmap } from './activity-heatmap'
 
 const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -106,15 +109,15 @@ export default function UserDashboard({ userId }: { userId: string }) {
           .from('activities')
           .select('id', { count: 'exact' })
           .eq('user_id', userId)
-          .gte('date', startStr)
-          .lte('date', endStr),
+          .lte('date', endStr)
+          .or(buildActivityOverlapOr(startStr)),
         supabase
           .from('activities')
           .select('id', { count: 'exact' })
           .eq('user_id', userId)
           .eq('is_done', true)
-          .gte('date', startStr)
-          .lte('date', endStr),
+          .lte('date', endStr)
+          .or(buildActivityOverlapOr(startStr)),
       ])
 
       const periodCount = periodCountRes.count || 0
@@ -142,24 +145,32 @@ export default function UserDashboard({ userId }: { userId: string }) {
 
   // 3. Fetch Heatmap Data (3 bulan terakhir)
   const heatmapStartStr = format(subMonths(new Date(), 3), 'yyyy-MM-dd')
-  const heatmapStart = new Date(heatmapStartStr)
+  const heatmapStart = parseISO(heatmapStartStr)
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
   const { data: heatmapData, isLoading: isLoadingHeatmap } = useQuery({
-    queryKey: ['heatmap', userId, heatmapStartStr],
+    queryKey: ['heatmap', userId, heatmapStartStr, todayStr],
     queryFn: async () => {
       const { data } = await supabase
         .from('activities')
-        .select('date')
+        .select('id, date, end_date')
         .eq('user_id', userId)
-        .gte('date', heatmapStartStr)
+        .lte('date', todayStr)
+        .or(buildActivityOverlapOr(heatmapStartStr))
 
-      const counts =
-        data?.reduce((acc: Record<string, number>, curr) => {
-          acc[curr.date] = (acc[curr.date] || 0) + 1
-          return acc
-        }, {}) || {}
-      return counts
+      return countActivitiesPerDay(data ?? [], heatmapStartStr, todayStr)
     },
   })
+
+  const heatmapTotal = useMemo(
+    () =>
+      Object.values(heatmapData ?? {}).reduce((sum, count) => sum + count, 0),
+    [heatmapData]
+  )
+
+  const heatmapActiveDays = useMemo(
+    () => Object.values(heatmapData ?? {}).filter((count) => count > 0).length,
+    [heatmapData]
+  )
 
   // 4. Fetch Tasks based on period
   const { data: periodTasks, isLoading: isLoadingTasks } = useQuery({
@@ -191,8 +202,8 @@ export default function UserDashboard({ userId }: { userId: string }) {
         .from('activities')
         .select(`*, unit:unit_measurement(name), assignor_team:teams(name)`)
         .eq('user_id', userId)
-        .gte('date', startStr)
         .lte('date', endStr)
+        .or(buildActivityOverlapOr(startStr))
       return (data ?? []) as unknown as PeriodTask[]
     },
   })
@@ -331,9 +342,32 @@ export default function UserDashboard({ userId }: { userId: string }) {
         {/* Heatmap */}
         <Card className='overflow-hidden lg:w-fit'>
           <CardHeader className='pb-2'>
-            <CardTitle className='text-sm font-medium'>
-              Aktivitas 3 Bulan Terakhir
-            </CardTitle>
+            <div className='flex items-start justify-between gap-6'>
+              <div>
+                <CardTitle className='text-sm font-medium'>
+                  Aktivitas 3 Bulan Terakhir
+                </CardTitle>
+                <CardDescription className='text-xs'>
+                  {isLoadingHeatmap
+                    ? 'Menghitung...'
+                    : `${heatmapActiveDays} hari aktif`}
+                </CardDescription>
+              </div>
+              <div className='text-right'>
+                {isLoadingHeatmap ? (
+                  <Skeleton className='h-7 w-12' />
+                ) : (
+                  <>
+                    <div className='text-2xl leading-none font-bold tabular-nums'>
+                      {heatmapTotal}
+                    </div>
+                    <div className='text-[11px] text-muted-foreground'>
+                      aktivitas
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingHeatmap ? (

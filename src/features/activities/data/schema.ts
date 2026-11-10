@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+/** Kuadran Eisenhower yang dipakai halaman board. */
+export const ACTIVITY_QUADRANTS = [
+  'do-first',
+  'schedule',
+  'delegate',
+  'eliminate',
+] as const
+
+export type ActivityQuadrant = (typeof ACTIVITY_QUADRANTS)[number]
+
 export const activitySchema = z.object({
   id: z.number(),
   description: z.string(),
@@ -16,6 +26,8 @@ export const activitySchema = z.object({
   user_id: z.string(),
   link_bukti_dukung: z.string().nullable(),
   coordinates: z.string().nullable(),
+  // Nullable + optional supaya baris lama (sebelum migrasi) tetap valid.
+  quadrant: z.enum(ACTIVITY_QUADRANTS).nullish(),
 })
 
 export type Activity = z.infer<typeof activitySchema>
@@ -33,6 +45,7 @@ export type CreateActivityInput = {
   user_id: string
   link_bukti_dukung: string | null
   coordinates: string | null
+  quadrant?: ActivityQuadrant | null
 }
 
 export type UpdateActivityInput = Partial<CreateActivityInput>

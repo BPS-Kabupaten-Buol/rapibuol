@@ -5,6 +5,7 @@ import {
   HelpCircle,
   Palette,
   Settings,
+  SquareKanban,
   Wrench,
   Users,
   Users2,
@@ -34,6 +35,11 @@ export const sidebarData: SidebarData = {
           title: 'Kalender',
           url: '/calendar',
           icon: CalendarDays,
+        },
+        {
+          title: 'Board',
+          url: '/board',
+          icon: SquareKanban,
         },
         {
           title: 'Tim',

@@ -7,6 +7,7 @@ import {
   MapPin,
   Package,
   Pencil,
+  Trash2,
   Users,
 } from 'lucide-react'
 import { getTeams } from '@/features/teams/api/teams'
@@ -29,6 +30,7 @@ type ActivityDetailDrawerProps = {
   onOpenChange: (open: boolean) => void
   activity: Activity | null
   onEdit: (activity: Activity) => void
+  onDelete: (activity: Activity) => void
 }
 
 function formatDateLabel(value: string): string {
@@ -74,6 +76,7 @@ export function ActivityDetailDrawer({
   onOpenChange,
   activity,
   onEdit,
+  onDelete,
 }: ActivityDetailDrawerProps) {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams', 'options'],
@@ -167,18 +170,30 @@ export function ActivityDetailDrawer({
           </div>
         )}
 
-        <SheetFooter className='flex-row justify-end gap-2'>
-          <Button variant='outline' onClick={() => onOpenChange(false)}>
-            Tutup
-          </Button>
+        <SheetFooter className='flex-row justify-between gap-2'>
           <Button
+            variant='destructive'
             className='gap-1'
             disabled={!activity}
-            onClick={() => activity && onEdit(activity)}
+            onClick={() => activity && onDelete(activity)}
           >
-            <Pencil className='h-4 w-4' />
-            Ubah Aktivitas
+            <Trash2 className='h-4 w-4' />
+            Hapus
           </Button>
+
+          <div className='flex gap-2'>
+            <Button variant='outline' onClick={() => onOpenChange(false)}>
+              Tutup
+            </Button>
+            <Button
+              className='gap-1'
+              disabled={!activity}
+              onClick={() => activity && onEdit(activity)}
+            >
+              <Pencil className='h-4 w-4' />
+              Ubah Aktivitas
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>
