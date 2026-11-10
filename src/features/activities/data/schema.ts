@@ -28,6 +28,8 @@ export const activitySchema = z.object({
   coordinates: z.string().nullable(),
   // Nullable + optional supaya baris lama (sebelum migrasi) tetap valid.
   quadrant: z.enum(ACTIVITY_QUADRANTS).nullish(),
+  /** ID dari sumber luar, mis. `google-task:<id>`. */
+  external_id: z.string().nullish(),
 })
 
 export type Activity = z.infer<typeof activitySchema>
@@ -46,6 +48,7 @@ export type CreateActivityInput = {
   link_bukti_dukung: string | null
   coordinates: string | null
   quadrant?: ActivityQuadrant | null
+  external_id?: string | null
 }
 
 export type UpdateActivityInput = Partial<CreateActivityInput>

@@ -171,19 +171,19 @@ export function ActivityDetailDrawer({
         )}
 
         <SheetFooter className='flex-row justify-between gap-2'>
-          <Button
-            variant='destructive'
-            className='gap-1'
-            disabled={!activity}
-            onClick={() => activity && onDelete(activity)}
-          >
-            <Trash2 className='h-4 w-4' />
-            Hapus
+          <Button variant='outline' onClick={() => onOpenChange(false)}>
+            Tutup
           </Button>
 
           <div className='flex gap-2'>
-            <Button variant='outline' onClick={() => onOpenChange(false)}>
-              Tutup
+            <Button
+              variant='destructive'
+              className='gap-1'
+              disabled={!activity}
+              onClick={() => activity && onDelete(activity)}
+            >
+              <Trash2 className='h-4 w-4' />
+              Hapus
             </Button>
             <Button
               className='gap-1'

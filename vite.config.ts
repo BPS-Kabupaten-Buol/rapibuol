@@ -18,8 +18,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       // Inject service worker registration script otomatis
       injectRegister: 'auto',
-      // File untuk custom service worker logic
-      selfDestroying: true,
+      // Service worker tidak lagi self-destroying supaya aplikasi bisa
+      // di-install, jalan offline, dan siap menerima push notification.
+      selfDestroying: false,
       includeAssets: [
         'images/favicon.svg',
         'images/favicon.png',
@@ -61,6 +62,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Navigasi SPA saat offline
+        navigateFallback: 'index.html',
         // Glob patterns untuk files yang di-precache
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Ignore certain patterns

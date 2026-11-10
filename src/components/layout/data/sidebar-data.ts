@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  FileText,
   LayoutDashboard,
   ListTodo,
   HelpCircle,
@@ -40,6 +41,11 @@ export const sidebarData: SidebarData = {
           title: 'Board',
           url: '/board',
           icon: SquareKanban,
+        },
+        {
+          title: 'Laporan',
+          url: '/reports',
+          icon: FileText,
         },
         {
           title: 'Tim',

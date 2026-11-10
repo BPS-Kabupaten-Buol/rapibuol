@@ -34,9 +34,9 @@ import { getUnits } from '@/features/units/api/units'
 import { createActivity, updateActivity } from '../api/activities'
 import { type Activity, type ActivityQuadrant } from '../data/schema'
 import {
-  isMissingQuadrantColumn,
-  MISSING_QUADRANT_COLUMN_HINT,
-} from '../lib/quadrant-column-error'
+  isMissingColumn,
+  missingColumnHint,
+} from '../lib/schema-column-error'
 
 type ActivityMutateDrawerProps = {
   open: boolean
@@ -181,8 +181,11 @@ export function ActivitiesMutateDrawer({
         queryClient.setQueryData(['stats', user.id], context.previousStats)
       }
       toast.error(
-        isMissingQuadrantColumn(err)
-          ? MISSING_QUADRANT_COLUMN_HINT
+        isMissingColumn(err, 'quadrant')
+          ? missingColumnHint(
+              'quadrant',
+              'docs/migrations/2026-11-10-activity-quadrant.sql'
+            )
           : 'Gagal membuat aktivitas'
       )
     },

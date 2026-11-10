@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { deleteActivity } from '@/features/activities/api/activities'
+import { GoogleTasksImportDialog } from '@/features/google-tasks/components/google-tasks-import-dialog'
 import { ActivityDetailDrawer } from './activity-detail-drawer'
 import { ActivitiesImportDialog } from './activities-import-dialog'
 import { ActivitiesMutateDrawer } from './activities-mutate-drawer'
@@ -64,6 +65,11 @@ export function ActivitiesDialogs() {
         key='tasks-import'
         open={open === 'import'}
         onOpenChange={() => setOpen('import')}
+      />
+
+      <GoogleTasksImportDialog
+        open={open === 'google-tasks'}
+        onOpenChange={() => setOpen('google-tasks')}
       />
 
       {currentRow && (

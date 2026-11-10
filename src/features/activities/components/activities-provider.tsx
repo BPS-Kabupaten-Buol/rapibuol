@@ -3,7 +3,12 @@ import useDialogState from '@/hooks/use-dialog-state'
 import { type Activity, type ActivityQuadrant } from '../data/schema'
 import { useToggleActivityDone } from '../hooks/use-toggle-activity-done'
 
-type ActivitiesDialogType = 'create' | 'update' | 'delete' | 'import'
+type ActivitiesDialogType =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'import'
+  | 'google-tasks'
 
 type ActivitiesContextType = {
   open: ActivitiesDialogType | null

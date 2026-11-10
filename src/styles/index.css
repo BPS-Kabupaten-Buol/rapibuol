@@ -85,3 +85,51 @@
     height: 0;
   }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* Sembunyikan kerangka aplikasi; hanya isi dokumen yang tercetak. */
+  [data-slot='sidebar'],
+  [data-slot='sidebar-gap'],
+  [data-print='hide'],
+  .no-print {
+    display: none !important;
+  }
+
+  [data-print='page'] {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Cegah dokumen terpotong tinggi layar saat dicetak. */
+  [data-slot='sidebar-inset'] {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}

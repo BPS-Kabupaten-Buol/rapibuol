@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from '@tanstack/react-router'
 import { useAuth } from '@/context/auth-provider'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { forgetTasksToken } from '@/features/google-tasks/api/google-tasks'
 
 interface SignOutDialogProps {
   open: boolean
@@ -13,6 +14,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const { signOut } = useAuth()
 
   const handleSignOut = async () => {
+    forgetTasksToken()
     await signOut()
     const currentPath = location.href
     navigate({

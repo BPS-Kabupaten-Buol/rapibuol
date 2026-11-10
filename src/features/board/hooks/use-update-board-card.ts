@@ -8,9 +8,9 @@ import {
   type UpdateActivityInput,
 } from '@/features/activities/data/schema'
 import {
-  isMissingQuadrantColumn,
-  MISSING_QUADRANT_COLUMN_HINT,
-} from '@/features/activities/lib/quadrant-column-error'
+  isMissingColumn,
+  missingColumnHint,
+} from '@/features/activities/lib/schema-column-error'
 
 export type UpdateBoardCardPayload = {
   activity: Activity
@@ -72,8 +72,11 @@ export function useUpdateBoardCard() {
       })
 
       toast.error(
-        isMissingQuadrantColumn(error)
-          ? MISSING_QUADRANT_COLUMN_HINT
+        isMissingColumn(error, 'quadrant')
+          ? missingColumnHint(
+              'quadrant',
+              'docs/migrations/2026-11-10-activity-quadrant.sql'
+            )
           : getErrorMessage(error)
       )
     },
