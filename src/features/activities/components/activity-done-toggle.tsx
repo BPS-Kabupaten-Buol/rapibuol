@@ -28,6 +28,23 @@ export function ActivityDoneToggle({
       title={label}
       onClick={(event) => {
         event.stopPropagation()
+
+        if (!activity.is_done) {
+          if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            // Centang bergoyang sebagai isyarat aktivitas selesai.
+            event.currentTarget.animate(
+              [
+                { transform: 'rotate(0deg) scale(1)' },
+                { transform: 'rotate(-12deg) scale(1.15)' },
+                { transform: 'rotate(10deg) scale(1.15)' },
+                { transform: 'rotate(-6deg) scale(1.1)' },
+                { transform: 'rotate(0deg) scale(1)' },
+              ],
+              { duration: 320, easing: 'ease-in-out' }
+            )
+          }
+        }
+
         toggleDone(activity)
       }}
       className={cn(

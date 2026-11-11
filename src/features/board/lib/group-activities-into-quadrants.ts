@@ -70,7 +70,9 @@ export function groupActivitiesIntoQuadrants(
   }
 
   for (const column of columns) sortActivities(column.activities)
+  // Yang paling baru di atas pada bagian Selesai.
   sortActivities(done)
+  done.reverse()
 
   return { columns, done }
 }
