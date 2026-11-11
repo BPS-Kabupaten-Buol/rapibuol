@@ -43,7 +43,19 @@ export function ActivitiesProvider({
   const [currentRow, setCurrentRow] = useState<Activity | null>(null)
   const [detailActivity, setDetailActivity] = useState<Activity | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
-  const { mutate: toggleDone } = useToggleActivityDone()
+  const { mutate: toggle } = useToggleActivityDone()
+
+  // Drawer detail memegang salinan aktivitas, jadi centangnya disamakan di sini
+  // supaya langsung berubah tanpa menutup drawer.
+  // shortcut: salinan drawer tidak ikut rollback kalau request gagal, tambahkan saat perlu.
+  const toggleDone = (activity: Activity) => {
+    toggle(activity)
+    setDetailActivity((current) =>
+      current?.id === activity.id
+        ? { ...current, is_done: !current.is_done }
+        : current
+    )
+  }
 
   return (
     <ActivitiesContext

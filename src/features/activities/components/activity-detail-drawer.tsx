@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   type LucideIcon,
   CalendarDays,
+  CalendarPlus,
   Clock,
   ExternalLink,
   MapPin,
@@ -24,6 +25,8 @@ import {
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { formatActivityTime } from '../lib/activity-time'
+import { getActivityCalendarUrl } from '../lib/google-calendar-link'
+import { ActivityDoneToggle } from './activity-done-toggle'
 import { type Activity } from '../data/schema'
 
 type ActivityDetailDrawerProps = {
@@ -93,6 +96,9 @@ export function ActivityDetailDrawer({
   const time = activity
     ? formatActivityTime(activity.start_time, activity.end_time)
     : null
+  const calendarUrl = activity
+    ? getActivityCalendarUrl(activity, { unitName, teamName })
+    : null
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -108,12 +114,28 @@ export function ActivityDetailDrawer({
 
         {activity && (
           <div className='flex-1 space-y-4 overflow-y-auto px-4 py-2'>
-            <Badge
-              variant={activity.is_done ? 'default' : 'secondary'}
-              className={cn(activity.is_done && 'bg-emerald-500')}
-            >
-              {activity.is_done ? 'Selesai' : 'Belum selesai'}
-            </Badge>
+            <div className='flex items-center gap-2'>
+              <ActivityDoneToggle activity={activity} />
+              <Badge
+                variant={activity.is_done ? 'default' : 'secondary'}
+                className={cn(activity.is_done && 'bg-emerald-500')}
+              >
+                {activity.is_done ? 'Selesai' : 'Belum selesai'}
+              </Badge>
+            </div>
+
+            {calendarUrl && (
+              <Button variant='outline' size='sm' className='gap-1' asChild>
+                <a
+                  href={calendarUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                >
+                  <CalendarPlus className='h-4 w-4' />
+                  Tambah ke Google Calendar
+                </a>
+              </Button>
+            )}
 
             <DetailRow icon={CalendarDays} label='Tanggal'>
               {formatDateLabel(activity.date)}
