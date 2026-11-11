@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
 import { Download } from 'lucide-react'
 import { downloadBlob } from '@/lib/docx'
@@ -26,6 +26,7 @@ import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
 import {
   buildReport,
+  formatReportDate,
   getReportKindLabel,
   getReportLabel,
   getReportRange,
@@ -146,7 +147,7 @@ export function ReportsPage() {
 
   const handleDownload = (target: 'docx' | 'pdf' | 'xlsx') => {
     const rows: ReportDocRow[] = report.rows.map((activity) => ({
-      date: format(parseISO(activity.date), 'd MMM yyyy', { locale: localeId }),
+      date: formatReportDate(activity.date, activity.end_date),
       time: activity.start_time
         ? `${activity.start_time.slice(0, 5)}${activity.end_time ? `–${activity.end_time.slice(0, 5)}` : ''}`
         : '-',
@@ -369,9 +370,7 @@ export function ReportsPage() {
                         {index + 1}
                       </td>
                       <td className='border border-black/30 px-1 py-1 break-words'>
-                        {format(parseISO(activity.date), 'd MMM yyyy', {
-                          locale: localeId,
-                        })}
+                        {formatReportDate(activity.date, activity.end_date)}
                       </td>
                       <td className='border border-black/30 px-1 py-1 break-words tabular-nums'>
                         {activity.start_time?.slice(0, 5) ?? '-'}

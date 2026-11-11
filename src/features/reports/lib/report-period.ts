@@ -2,6 +2,8 @@ import {
   endOfMonth,
   endOfQuarter,
   format,
+  isAfter,
+  parseISO,
   startOfMonth,
   startOfQuarter,
 } from 'date-fns'
@@ -46,6 +48,30 @@ export function getReportLabel(period: ReportPeriod): string {
 
 export function getReportKindLabel(period: ReportPeriod): string {
   return period.kind === 'monthly' ? 'Bulanan' : 'Triwulanan'
+}
+
+/**
+ * Tanggal untuk kolom rekap. Aktivitas multi-hari ditulis sebagai rentang,
+ * misal "9–10 Nov 2026", supaya tidak terbaca sebagai kegiatan satu hari.
+ */
+export function formatReportDate(
+  date: string,
+  endDate: string | null
+): string {
+  const start = parseISO(date)
+  const startLabel = format(start, 'd MMM yyyy', { locale: localeId })
+  if (!endDate) return startLabel
+
+  const end = parseISO(endDate)
+  if (!isAfter(end, start)) return startLabel
+
+  const sameMonth =
+    start.getMonth() === end.getMonth() &&
+    start.getFullYear() === end.getFullYear()
+
+  return sameMonth
+    ? `${format(start, 'd', { locale: localeId })}–${format(end, 'd MMM yyyy', { locale: localeId })}`
+    : `${format(start, 'd MMM', { locale: localeId })} – ${format(end, 'd MMM yyyy', { locale: localeId })}`
 }
 
 export type ReportVolume = {
