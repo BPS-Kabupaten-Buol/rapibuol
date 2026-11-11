@@ -2,6 +2,7 @@ import { useRef, useState, type DragEvent } from 'react'
 import {
   differenceInCalendarDays,
   format,
+  isSameDay,
   isSameMonth,
   isToday,
   parseISO,
@@ -25,6 +26,8 @@ const BAR_H = 17
 
 type MonthGridProps = {
   month: Date
+  /** Kalau diisi, hanya minggu yang memuat tanggal ini yang ditampilkan. */
+  weekOf?: Date | null
   activities: Activity[]
   activitiesByDay: Map<string, Activity[]>
   onSelectDay: (day: Date) => void
@@ -47,13 +50,16 @@ function barTitle(activity: Activity): string {
 
 export function MonthGrid({
   month,
+  weekOf,
   activities,
   activitiesByDay,
   onSelectDay,
   onSelectActivity,
   onMoveActivity,
 }: MonthGridProps) {
-  const weeks = buildMonthWeeks(month, activities, MAX_LANES)
+  const weeks = buildMonthWeeks(month, activities, MAX_LANES).filter(
+    (week) => !weekOf || week.days.some((day) => isSameDay(day, weekOf))
+  )
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const [hoverKey, setHoverKey] = useState<string | null>(null)
   const draggingActivity = useRef<Activity | null>(null)
@@ -154,7 +160,8 @@ export function MonthGrid({
                   {week.days.map((day, dayIndex) => {
                     const key = format(day, 'yyyy-MM-dd')
                     const dayActivities = activitiesByDay.get(key) ?? []
-                    const inMonth = isSameMonth(day, month)
+                    // Tampilan minggu bisa memuat tanggal dari bulan sebelah.
+                    const inMonth = weekOf ? true : isSameMonth(day, month)
                     const isDropTarget = hoverKey === key && draggingId !== null
 
                     return (

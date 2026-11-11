@@ -23,6 +23,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import { formatActivityTime } from '../lib/activity-time'
 import { type Activity } from '../data/schema'
 
 type ActivityDetailDrawerProps = {
@@ -43,10 +44,6 @@ function formatDateLabel(value: string): string {
     month: 'long',
     year: 'numeric',
   })
-}
-
-function formatTime(value: string | null): string {
-  return value ? value.slice(0, 5) : '--:--'
 }
 
 function DetailRow({
@@ -93,6 +90,9 @@ export function ActivityDetailDrawer({
   const unitName = units.find((unit) => unit.id === activity?.unit)?.name ?? null
   const teamName =
     teams.find((team) => team.id === activity?.assignor)?.name ?? null
+  const time = activity
+    ? formatActivityTime(activity.start_time, activity.end_time)
+    : null
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -124,10 +124,11 @@ export function ActivityDetailDrawer({
               )}
             </DetailRow>
 
-            <DetailRow icon={Clock} label='Jam'>
-              {formatTime(activity.start_time)} &ndash;{' '}
-              {formatTime(activity.end_time)}
-            </DetailRow>
+            {time && (
+              <DetailRow icon={Clock} label='Jam'>
+                {time}
+              </DetailRow>
+            )}
 
             {activity.volume !== null && (
               <DetailRow icon={Package} label='Volume'>

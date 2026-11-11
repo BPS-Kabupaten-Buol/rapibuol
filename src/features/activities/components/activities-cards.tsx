@@ -223,11 +223,13 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
                 )}
 
                 {/* Time */}
-                <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums'>
-                  <Clock className='h-3 w-3' />
-                  {activity.start_time?.slice(0, 5) ?? '--:--'} –{' '}
-                  {activity.end_time?.slice(0, 5) ?? '--:--'}
-                </span>
+                {activity.start_time && (
+                  <span className='inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums'>
+                    <Clock className='h-3 w-3' />
+                    {activity.start_time.slice(0, 5)}
+                    {activity.end_time ? ` – ${activity.end_time.slice(0, 5)}` : ''}
+                  </span>
+                )}
 
                 {duration && (
                   <span className='rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground/70 tabular-nums'>

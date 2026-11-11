@@ -298,14 +298,20 @@ export function ActivitiesMutateDrawer({
           <SheetDescription>
             {isUpdate
               ? 'Perbarui aktivitas dengan mengisi informasi yang diperlukan.'
-              : 'Tambahkan aktivitas baru dengan mengisi informasi yang diperlukan.'}
-            Klik simpan jika sudah selesai.
+              : 'Tambahkan aktivitas baru dengan mengisi informasi yang diperlukan.'}{' '}
+            Klik Simpan atau tekan Ctrl + Enter.
           </SheetDescription>
         </SheetHeader>
         <Form {...form}>
           <form
             id='activities-form'
             onSubmit={form.handleSubmit(onSubmit)}
+            onKeyDown={(event) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault()
+                event.currentTarget.requestSubmit()
+              }
+            }}
             className='flex-1 space-y-4 overflow-y-auto px-4 py-2'
           >
             <FormField
