@@ -13,6 +13,7 @@ import {
   isAuthFailure,
 } from '@/lib/handle-server-error'
 import { AuthProvider } from '@/context/auth-provider'
+import { OfflineBanner } from '@/components/offline-banner'
 import { PWAUpdateNotification } from '@/components/pwa-update-notification'
 import { DirectionProvider } from './context/direction-provider'
 import { FontProvider } from './context/font-provider'
@@ -79,6 +80,7 @@ if (!rootElement.innerHTML) {
             <DirectionProvider>
               <AuthProvider>
                 <PWAUpdateNotification />
+                <OfflineBanner />
                 <RouterProvider router={router} />
               </AuthProvider>
             </DirectionProvider>
