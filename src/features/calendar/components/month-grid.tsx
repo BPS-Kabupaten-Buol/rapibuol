@@ -9,7 +9,11 @@ import {
 } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { type Activity } from '@/features/activities/data/schema'
-import { buildMonthWeeks, MAX_LANES } from '../lib/build-month-weeks'
+import {
+  buildMonthWeeks,
+  MAX_LANES,
+  type WeekBar,
+} from '../lib/build-month-weeks'
 
 const WEEKDAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 /** Jumlah label aktivitas yang muat di sel ponsel. */
@@ -46,6 +50,11 @@ function barTitle(activity: Activity): string {
   if (!activity.end_date) return `${activity.description} · ${start}`
 
   return `${activity.description} · ${start} – ${format(parseISO(activity.end_date), 'd MMM yyyy')}`
+}
+
+/** Aktivitas yang mencakup lebih dari satu hari. */
+function isMultiDayActivity(activity: Activity): boolean {
+  return !!activity.end_date && activity.end_date > activity.date
 }
 
 export function MonthGrid({
@@ -93,17 +102,43 @@ export function MonthGrid({
           {weeks.map((week, weekIndex) => {
             const hasOverflow = week.overflow.length > 0
 
-            // Di ponsel setiap sel menampilkan teks aktivitas, jadi tingginya
-            // ikut menyesuaikan jumlah label yang terlihat.
-            const maxMobileChips = week.days.reduce((max, day) => {
-              const count =
-                activitiesByDay.get(format(day, 'yyyy-MM-dd'))?.length ?? 0
-              return Math.max(max, Math.min(count, MAX_MOBILE_CHIPS))
-            }, 0)
+            // Di ponsel, aktivitas rentang digambar sebagai bar yang menyambung
+            // antar hari; aktivitas satu hari tetap jadi teks di dalam sel.
+            // Lajur dirapatkan supaya bar tidak menyisakan baris kosong.
+            const laneMap = new Map<number, number>()
+            const multiDayBars: Array<{ bar: WeekBar; lane: number }> = []
+
+            for (const bar of [...week.bars].sort((a, b) => a.lane - b.lane)) {
+              if (!bar.isMultiDay) continue
+
+              if (!laneMap.has(bar.lane)) laneMap.set(bar.lane, laneMap.size)
+              multiDayBars.push({ bar, lane: laneMap.get(bar.lane) ?? 0 })
+            }
+
+            const mobileBarLanes = laneMap.size
+            const renderedBarIds = new Set(
+              multiDayBars.map((item) => item.bar.activity.id)
+            )
+
+            const chipsOf = (day: Date) =>
+              (activitiesByDay.get(format(day, 'yyyy-MM-dd')) ?? []).filter(
+                (activity) => !isMultiDayActivity(activity)
+              )
+
+            // Tinggi baris mengikuti jumlah label yang terlihat di ponsel.
+            const maxMobileChips = week.days.reduce(
+              (max, day) =>
+                Math.max(max, Math.min(chipsOf(day).length, MAX_MOBILE_CHIPS)),
+              0
+            )
 
             const rowHeight = Math.max(
               84,
-              DAY_HEADER_H + 6 + maxMobileChips * MOBILE_CHIP_H + 4,
+              DAY_HEADER_H +
+                6 +
+                mobileBarLanes * LANE_H +
+                maxMobileChips * MOBILE_CHIP_H +
+                4,
               DAY_HEADER_H + week.laneCount * LANE_H + (hasOverflow ? 16 : 4)
             )
 
@@ -147,6 +182,68 @@ export function MonthGrid({
               if (deltaDays !== 0) onMoveActivity?.(activity, deltaDays)
             }
 
+            const renderBar = (bar: WeekBar, lane: number) => (
+              <div
+                key={`${bar.activity.id}-${lane}`}
+                role='button'
+                tabIndex={0}
+                draggable={!!onMoveActivity}
+                onDragStart={(event) => {
+                  draggingActivity.current = bar.activity
+                  draggingStartDay.current = week.days[bar.startCol]
+                  setDraggingId(bar.activity.id)
+                  event.dataTransfer.effectAllowed = 'move'
+                  try {
+                    event.dataTransfer.setData(
+                      'text/plain',
+                      String(bar.activity.id)
+                    )
+                  } catch {
+                    /* sebagian browser membatasi dataTransfer */
+                  }
+                }}
+                onDragEnd={resetDrag}
+                onClick={() =>
+                  openActivity(bar.activity, week.days[bar.startCol])
+                }
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+
+                  event.preventDefault()
+                  openActivity(bar.activity, week.days[bar.startCol])
+                }}
+                title={barTitle(bar.activity)}
+                aria-label={barTitle(bar.activity)}
+                className={cn(
+                  'pointer-events-auto absolute flex items-center gap-1 overflow-hidden px-1.5 text-left text-[11px] leading-none transition-colors select-none',
+                  'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                  onMoveActivity && 'cursor-grab active:cursor-grabbing',
+                  bar.continuesBefore ? 'rounded-l-none' : 'rounded-l-md',
+                  bar.continuesAfter ? 'rounded-r-none' : 'rounded-r-md',
+                  bar.activity.is_done
+                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300'
+                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300',
+                  draggingId === bar.activity.id && 'opacity-40'
+                )}
+                style={{
+                  left: `${(bar.startCol / 7) * 100}%`,
+                  width: `${((bar.endCol - bar.startCol + 1) / 7) * 100}%`,
+                  top: DAY_HEADER_H + lane * LANE_H,
+                  height: BAR_H,
+                }}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 shrink-0 rounded-full',
+                    bar.activity.is_done ? 'bg-emerald-500' : 'bg-amber-500'
+                  )}
+                />
+                <span className='min-w-0 flex-1 truncate'>
+                  {barLabel(bar.activity, bar.isMultiDay)}
+                </span>
+              </div>
+            )
+
             return (
               <div
                 key={weekIndex}
@@ -159,7 +256,19 @@ export function MonthGrid({
                 <div className='absolute inset-0 grid grid-cols-7'>
                   {week.days.map((day, dayIndex) => {
                     const key = format(day, 'yyyy-MM-dd')
-                    const dayActivities = activitiesByDay.get(key) ?? []
+                    const dayActivities = chipsOf(day)
+                    const hiddenChips = Math.max(
+                      0,
+                      dayActivities.length - MAX_MOBILE_CHIPS
+                    )
+                    // Aktivitas rentang yang tidak kebagian lajur ikut dihitung.
+                    const hiddenMultiDay = (
+                      activitiesByDay.get(key) ?? []
+                    ).filter(
+                      (activity) =>
+                        isMultiDayActivity(activity) &&
+                        !renderedBarIds.has(activity.id)
+                    ).length
                     // Tampilan minggu bisa memuat tanggal dari bulan sebelah.
                     const inMonth = weekOf ? true : isSameMonth(day, month)
                     const isDropTarget = hoverKey === key && draggingId !== null
@@ -193,8 +302,12 @@ export function MonthGrid({
                           {format(day, 'd')}
                         </span>
 
-                        {/* Teks aktivitas di ponsel; bar di layar lebar. */}
-                        <div className='flex w-full min-w-0 flex-col gap-0.5 sm:hidden'>
+                        {/* Aktivitas satu hari sebagai teks; yang rentang jadi
+                            bar di atasnya, termasuk di ponsel. */}
+                        <div
+                          className='flex w-full min-w-0 flex-col gap-0.5 sm:hidden'
+                          style={{ marginTop: mobileBarLanes * LANE_H }}
+                        >
                           {dayActivities
                             .slice(0, MAX_MOBILE_CHIPS)
                             .map((activity) => (
@@ -222,9 +335,9 @@ export function MonthGrid({
                               </span>
                             ))}
 
-                          {dayActivities.length > MAX_MOBILE_CHIPS && (
+                          {hiddenChips + hiddenMultiDay > 0 && (
                             <span className='text-[10px] text-muted-foreground'>
-                              +{dayActivities.length - MAX_MOBILE_CHIPS} lagi
+                              +{hiddenChips + hiddenMultiDay} lagi
                             </span>
                           )}
                         </div>
@@ -234,69 +347,7 @@ export function MonthGrid({
                 </div>
 
                 <div className='pointer-events-none absolute inset-0 z-10 hidden sm:block'>
-                  {week.bars.map((bar) => (
-                    <div
-                      key={`${bar.activity.id}-${bar.lane}`}
-                      role='button'
-                      tabIndex={0}
-                      draggable={!!onMoveActivity}
-                      onDragStart={(event) => {
-                        draggingActivity.current = bar.activity
-                        draggingStartDay.current = week.days[bar.startCol]
-                        setDraggingId(bar.activity.id)
-                        event.dataTransfer.effectAllowed = 'move'
-                        try {
-                          event.dataTransfer.setData(
-                            'text/plain',
-                            String(bar.activity.id)
-                          )
-                        } catch {
-                          /* sebagian browser membatasi dataTransfer */
-                        }
-                      }}
-                      onDragEnd={resetDrag}
-                      onClick={() =>
-                        openActivity(bar.activity, week.days[bar.startCol])
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return
-
-                        event.preventDefault()
-                        openActivity(bar.activity, week.days[bar.startCol])
-                      }}
-                      title={barTitle(bar.activity)}
-                      aria-label={barTitle(bar.activity)}
-                      className={cn(
-                        'pointer-events-auto absolute flex items-center gap-1 overflow-hidden px-1.5 text-left text-[11px] leading-none transition-colors select-none',
-                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                        onMoveActivity && 'cursor-grab active:cursor-grabbing',
-                        bar.continuesBefore ? 'rounded-l-none' : 'rounded-l-md',
-                        bar.continuesAfter ? 'rounded-r-none' : 'rounded-r-md',
-                        bar.activity.is_done
-                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300'
-                          : 'bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300',
-                        draggingId === bar.activity.id && 'opacity-40'
-                      )}
-                      style={{
-                        left: `${(bar.startCol / 7) * 100}%`,
-                        width: `${((bar.endCol - bar.startCol + 1) / 7) * 100}%`,
-                        top: DAY_HEADER_H + bar.lane * LANE_H,
-                        height: BAR_H,
-                      }}
-                    >
-                      <span
-                        className={cn(
-                          'h-1.5 w-1.5 shrink-0 rounded-full',
-                          bar.activity.is_done
-                            ? 'bg-emerald-500'
-                            : 'bg-amber-500'
-                        )}
-                      />
-                      <span className='min-w-0 flex-1 truncate'>
-                        {barLabel(bar.activity, bar.isMultiDay)}
-                      </span>
-                    </div>
-                  ))}
+                  {week.bars.map((bar) => renderBar(bar, bar.lane))}
 
                   {week.overflow.map((note) => (
                     <span
@@ -311,6 +362,12 @@ export function MonthGrid({
                       +{note.count} lagi
                     </span>
                   ))}
+                </div>
+
+                {/* Bar aktivitas rentang di ponsel, supaya hari-harinya
+                    terlihat menyambung dalam satu baris. */}
+                <div className='pointer-events-none absolute inset-0 z-10 sm:hidden'>
+                  {multiDayBars.map((item) => renderBar(item.bar, item.lane))}
                 </div>
               </div>
             )
