@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Calendar,
   CalendarPlus,
+  Copy,
   MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -64,7 +65,8 @@ function CardActions({
   unitName?: string | null
   teamName?: string | null
 }) {
-  const { setOpen, setCurrentRow, toggleDone } = useActivities()
+  const { setOpen, setCurrentRow, setDuplicateFrom, toggleDone } =
+    useActivities()
   const isMobile = useIsMobile()
   const calendarUrl = getActivityCalendarUrl(activity, { unitName, teamName })
 
@@ -110,6 +112,16 @@ function CardActions({
         >
           <Pencil className='mr-2 h-4 w-4' />
           Ubah Aktivitas
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className='cursor-pointer'
+          onClick={() => {
+            setDuplicateFrom(activity)
+            setOpen('create')
+          }}
+        >
+          <Copy className='mr-2 h-4 w-4' />
+          Duplikat
         </DropdownMenuItem>
         {calendarUrl && (
           <DropdownMenuItem asChild className='cursor-pointer'>

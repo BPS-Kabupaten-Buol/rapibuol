@@ -19,6 +19,8 @@ export function ActivitiesDialogs() {
     defaultQuadrant,
     detailActivity,
     setDetailActivity,
+    duplicateFrom,
+    setDuplicateFrom,
   } = useActivities()
   const queryClient = useQueryClient()
 
@@ -51,14 +53,23 @@ export function ActivitiesDialogs() {
           setCurrentRow(activity)
           setOpen('delete')
         }}
+        onDuplicate={(activity) => {
+          setDetailActivity(null)
+          setDuplicateFrom(activity)
+          setOpen('create')
+        }}
       />
 
       <ActivitiesMutateDrawer
-        key={`activity-create-${defaultDate ? format(defaultDate, 'yyyy-MM-dd') : 'today'}-${defaultQuadrant ?? 'none'}`}
+        key={`activity-create-${defaultDate ? format(defaultDate, 'yyyy-MM-dd') : 'today'}-${defaultQuadrant ?? 'none'}-${duplicateFrom?.id ?? 'new'}`}
         open={open === 'create'}
-        onOpenChange={() => setOpen('create')}
+        onOpenChange={() => {
+          setOpen('create')
+          setDuplicateFrom(null)
+        }}
         defaultDate={defaultDate ?? undefined}
         defaultQuadrant={defaultQuadrant}
+        duplicateFrom={duplicateFrom}
       />
 
       <ActivitiesImportDialog

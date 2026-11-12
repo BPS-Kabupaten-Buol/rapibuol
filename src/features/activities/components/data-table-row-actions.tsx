@@ -1,6 +1,6 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { type Row } from '@tanstack/react-table'
-import { CalendarPlus, Trash2 } from 'lucide-react'
+import { CalendarPlus, Copy, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -28,7 +28,7 @@ export function DataTableRowActions<TData>({
   const activity = activitySchema.parse(row.original)
   const calendarUrl = getActivityCalendarUrl(activity, { unitName, teamName })
 
-  const { setOpen, setCurrentRow } = useActivities()
+  const { setOpen, setCurrentRow, setDuplicateFrom } = useActivities()
 
   return (
     <DropdownMenu modal={false}>
@@ -49,6 +49,15 @@ export function DataTableRowActions<TData>({
           }}
         >
           Ubah
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setDuplicateFrom(activity)
+            setOpen('create')
+          }}
+        >
+          <Copy className='mr-2 h-4 w-4 text-muted-foreground' />
+          Duplikat
         </DropdownMenuItem>
         {calendarUrl && (
           <DropdownMenuItem asChild>

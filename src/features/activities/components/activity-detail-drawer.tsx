@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CalendarPlus,
   Clock,
+  Copy,
   ExternalLink,
   MapPin,
   Package,
@@ -35,6 +36,7 @@ type ActivityDetailDrawerProps = {
   activity: Activity | null
   onEdit: (activity: Activity) => void
   onDelete: (activity: Activity) => void
+  onDuplicate: (activity: Activity) => void
 }
 
 function formatDateLabel(value: string): string {
@@ -77,6 +79,7 @@ export function ActivityDetailDrawer({
   activity,
   onEdit,
   onDelete,
+  onDuplicate,
 }: ActivityDetailDrawerProps) {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams', 'options'],
@@ -124,18 +127,30 @@ export function ActivityDetailDrawer({
               </Badge>
             </div>
 
-            {calendarUrl && (
-              <Button variant='outline' size='sm' className='gap-1' asChild>
-                <a
-                  href={calendarUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                >
-                  <CalendarPlus className='h-4 w-4' />
-                  Tambah ke Google Calendar
-                </a>
+            <div className='flex flex-wrap gap-2'>
+              {calendarUrl && (
+                <Button variant='outline' size='sm' className='gap-1' asChild>
+                  <a
+                    href={calendarUrl}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    <CalendarPlus className='h-4 w-4' />
+                    Tambah ke Google Calendar
+                  </a>
+                </Button>
+              )}
+
+              <Button
+                variant='outline'
+                size='sm'
+                className='gap-1'
+                onClick={() => onDuplicate(activity)}
+              >
+                <Copy className='h-4 w-4' />
+                Duplikat
               </Button>
-            )}
+            </div>
 
             <DetailRow icon={CalendarDays} label='Tanggal'>
               {formatDateLabel(activity.date)}

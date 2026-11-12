@@ -46,6 +46,8 @@ type ActivityMutateDrawerProps = {
   defaultDate?: Date
   /** Kuadran board tempat aktivitas baru dibuat. */
   defaultQuadrant?: ActivityQuadrant | null
+  /** Aktivitas sumber saat membuat salinan. */
+  duplicateFrom?: Activity | null
 }
 
 const formSchema = z.object({
@@ -75,8 +77,11 @@ export function ActivitiesMutateDrawer({
   currentRow,
   defaultDate,
   defaultQuadrant,
+  duplicateFrom,
 }: ActivityMutateDrawerProps) {
   const isUpdate = !!currentRow
+  // Nilai awal: baris yang diubah, atau salinan aktivitas, atau form kosong.
+  const source = currentRow ?? duplicateFrom ?? null
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
@@ -219,21 +224,20 @@ export function ActivitiesMutateDrawer({
 
   const form = useForm<ActivityForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: currentRow
+    defaultValues: source
       ? {
-          description: currentRow.description,
-          date: new Date(currentRow.date),
-          end_date: currentRow.end_date
-            ? new Date(currentRow.end_date)
-            : undefined,
-          start_time: currentRow.start_time ?? '',
-          end_time: currentRow.end_time ?? '',
-          volume: currentRow.volume ?? null,
-          unit: currentRow.unit ?? null,
-          assignor: currentRow.assignor ?? null,
-          is_done: currentRow.is_done,
-          link_bukti_dukung: currentRow.link_bukti_dukung ?? '',
-          coordinates: currentRow.coordinates ?? '',
+          description: source.description,
+          date: new Date(source.date),
+          end_date: source.end_date ? new Date(source.end_date) : undefined,
+          start_time: source.start_time ?? '',
+          end_time: source.end_time ?? '',
+          volume: source.volume ?? null,
+          unit: source.unit ?? null,
+          assignor: source.assignor ?? null,
+          // Salinan selalu mulai dari belum selesai.
+          is_done: isUpdate ? source.is_done : false,
+          link_bukti_dukung: source.link_bukti_dukung ?? '',
+          coordinates: source.coordinates ?? '',
         }
       : {
           description: '',
@@ -276,7 +280,7 @@ export function ActivitiesMutateDrawer({
     } else {
       createMutation.mutate({
         ...payload,
-        quadrant: defaultQuadrant ?? null,
+        quadrant: defaultQuadrant ?? duplicateFrom?.quadrant ?? null,
       })
     }
 
@@ -294,11 +298,16 @@ export function ActivitiesMutateDrawer({
     >
       <SheetContent className='flex w-full flex-col sm:max-w-md'>
         <SheetHeader className='text-start'>
-          <SheetTitle>{isUpdate ? 'Perbarui' : 'Buat'} Aktivitas</SheetTitle>
+          <SheetTitle>
+            {isUpdate ? 'Perbarui' : duplicateFrom ? 'Duplikat' : 'Buat'}{' '}
+            Aktivitas
+          </SheetTitle>
           <SheetDescription>
             {isUpdate
               ? 'Perbarui aktivitas dengan mengisi informasi yang diperlukan.'
-              : 'Tambahkan aktivitas baru dengan mengisi informasi yang diperlukan.'}{' '}
+              : duplicateFrom
+                ? 'Salinan aktivitas. Sesuaikan tanggalnya sebelum disimpan.'
+                : 'Tambahkan aktivitas baru dengan mengisi informasi yang diperlukan.'}{' '}
             Klik Simpan atau tekan Ctrl + Enter.
           </SheetDescription>
         </SheetHeader>

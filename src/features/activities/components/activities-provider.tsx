@@ -22,6 +22,9 @@ type ActivitiesContextType = {
   setCurrentRow: React.Dispatch<React.SetStateAction<Activity | null>>
   detailActivity: Activity | null
   setDetailActivity: (activity: Activity | null) => void
+  /** Aktivitas sumber saat membuat salinan lewat tombol Duplikat. */
+  duplicateFrom: Activity | null
+  setDuplicateFrom: (activity: Activity | null) => void
   toggleDone: (activity: Activity) => void
   selectionMode: boolean
   setSelectionMode: (value: boolean) => void
@@ -42,6 +45,7 @@ export function ActivitiesProvider({
     useState<ActivityQuadrant | null>(null)
   const [currentRow, setCurrentRow] = useState<Activity | null>(null)
   const [detailActivity, setDetailActivity] = useState<Activity | null>(null)
+  const [duplicateFrom, setDuplicateFrom] = useState<Activity | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
   const { mutate: toggle } = useToggleActivityDone()
 
@@ -70,6 +74,8 @@ export function ActivitiesProvider({
         setCurrentRow,
         detailActivity,
         setDetailActivity,
+        duplicateFrom,
+        setDuplicateFrom,
         toggleDone,
         selectionMode,
         setSelectionMode,
