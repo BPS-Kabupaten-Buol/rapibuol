@@ -260,6 +260,12 @@ export function ActivitiesCards({ table, teams, units }: ActivitiesCardsProps) {
                 {activity.description}
               </p>
 
+              {activity.notes && (
+                <p className='line-clamp-2 text-sm break-words whitespace-pre-line text-muted-foreground'>
+                  {activity.notes}
+                </p>
+              )}
+
               {/* Metadata */}
               <div className='flex flex-wrap items-center gap-x-5 gap-y-1 pt-0.5'>
                 {activity.volume !== null && (

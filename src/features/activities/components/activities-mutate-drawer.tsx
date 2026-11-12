@@ -62,6 +62,7 @@ const formSchema = z.object({
   is_done: z.boolean(),
   link_bukti_dukung: z.string().optional(),
   coordinates: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 type ActivityForm = z.infer<typeof formSchema>
@@ -128,6 +129,7 @@ export function ActivitiesMutateDrawer({
         user_id: newActivity.user_id,
         link_bukti_dukung: newActivity.link_bukti_dukung,
         coordinates: newActivity.coordinates,
+        notes: newActivity.notes ?? null,
         quadrant: newActivity.quadrant ?? null,
         created_at: new Date().toISOString(),
         updated_at: null,
@@ -191,7 +193,12 @@ export function ActivitiesMutateDrawer({
               'quadrant',
               'docs/migrations/2026-11-10-activity-quadrant.sql'
             )
-          : 'Gagal membuat aktivitas'
+          : isMissingColumn(err, 'notes')
+            ? missingColumnHint(
+                'notes',
+                'docs/migrations/2026-11-12-activity-notes.sql'
+              )
+            : 'Gagal membuat aktivitas'
       )
     },
     onSettled: () => {
@@ -217,8 +224,15 @@ export function ActivitiesMutateDrawer({
       queryClient.invalidateQueries({ queryKey: ['activities'] })
       toast.success('Aktivitas berhasil diperbarui')
     },
-    onError: () => {
-      toast.error('Gagal memperbarui aktivitas')
+    onError: (err) => {
+      toast.error(
+        isMissingColumn(err, 'notes')
+          ? missingColumnHint(
+              'notes',
+              'docs/migrations/2026-11-12-activity-notes.sql'
+            )
+          : 'Gagal memperbarui aktivitas'
+      )
     },
   })
 
@@ -238,6 +252,7 @@ export function ActivitiesMutateDrawer({
           is_done: isUpdate ? source.is_done : false,
           link_bukti_dukung: source.link_bukti_dukung ?? '',
           coordinates: source.coordinates ?? '',
+          notes: source.notes ?? '',
         }
       : {
           description: '',
@@ -251,6 +266,7 @@ export function ActivitiesMutateDrawer({
           is_done: false,
           link_bukti_dukung: '',
           coordinates: '',
+          notes: '',
         },
   })
 
@@ -271,6 +287,7 @@ export function ActivitiesMutateDrawer({
       assignor: data.assignor || null,
       link_bukti_dukung: data.link_bukti_dukung || null,
       coordinates: data.coordinates || null,
+      notes: data.notes?.trim() || null,
       is_done: data.is_done,
       user_id: user.id,
     }
@@ -535,6 +552,26 @@ export function ActivitiesMutateDrawer({
                 </FormItem>
               )}
             />
+
+            <div className='border-t pt-4'>
+              <FormField
+                control={form.control}
+                name='notes'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Catatan (Opsional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder='Catatan bebas, mis. kendala atau hal yang perlu diingat'
+                        className='min-h-[80px] resize-none'
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </form>
         </Form>
         <SheetFooter className='gap-2 pt-2'>

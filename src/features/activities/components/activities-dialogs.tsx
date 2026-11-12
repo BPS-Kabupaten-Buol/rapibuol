@@ -58,6 +58,11 @@ export function ActivitiesDialogs() {
           setDuplicateFrom(activity)
           setOpen('create')
         }}
+        onNotesSaved={(activity, notes) => {
+          // Abaikan hasil simpan yang datang setelah drawer ditutup.
+          if (detailActivity?.id !== activity.id) return
+          setDetailActivity({ ...activity, notes })
+        }}
       />
 
       <ActivitiesMutateDrawer

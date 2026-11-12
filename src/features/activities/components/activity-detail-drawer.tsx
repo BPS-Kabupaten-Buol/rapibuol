@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type LucideIcon,
   CalendarDays,
@@ -9,9 +10,11 @@ import {
   MapPin,
   Package,
   Pencil,
+  StickyNote,
   Trash2,
   Users,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { getTeams } from '@/features/teams/api/teams'
 import { getUnits } from '@/features/units/api/units'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +27,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { updateActivity } from '../api/activities'
+import { isMissingColumn, missingColumnHint } from '../lib/schema-column-error'
 import { formatActivityTime } from '../lib/activity-time'
 import { getActivityCalendarUrl } from '../lib/google-calendar-link'
 import { ActivityDoneToggle } from './activity-done-toggle'
@@ -37,6 +43,8 @@ type ActivityDetailDrawerProps = {
   onEdit: (activity: Activity) => void
   onDelete: (activity: Activity) => void
   onDuplicate: (activity: Activity) => void
+  /** Dipanggil setelah catatan tersimpan, supaya salinan di drawer ikut segar. */
+  onNotesSaved: (activity: Activity, notes: string | null) => void
 }
 
 function formatDateLabel(value: string): string {
@@ -73,6 +81,88 @@ function DetailRow({
   )
 }
 
+/** Editor catatan langsung di drawer detail, tersimpan otomatis. */
+function NotesEditor({
+  activity,
+  onSaved,
+}: {
+  activity: Activity
+  onSaved: (activity: Activity, notes: string | null) => void
+}) {
+  const queryClient = useQueryClient()
+  const [draft, setDraft] = useState(activity.notes ?? '')
+  const savedRef = useRef(activity.notes ?? '')
+  // Catatan dikirim berurutan supaya ketikan lama tidak menimpa yang baru.
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve())
+
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: (notes: string) =>
+      updateActivity(activity.id, { notes: notes || null }),
+    onSuccess: (updated) => {
+      savedRef.current = updated.notes ?? ''
+      onSaved(updated, updated.notes ?? null)
+      // Cukup tempel di cache: catatan tidak memengaruhi urutan atau rekap.
+      queryClient.setQueriesData<Activity[]>(
+        { queryKey: ['activities'] },
+        (list) =>
+          list?.map((item) =>
+            item.id === updated.id ? { ...item, notes: updated.notes } : item
+          )
+      )
+    },
+    onError: (error) => {
+      toast.error(
+        isMissingColumn(error, 'notes')
+          ? missingColumnHint(
+              'notes',
+              'docs/migrations/2026-11-12-activity-notes.sql'
+            )
+          : 'Gagal menyimpan catatan'
+      )
+    },
+  })
+
+  const flush = useCallback(
+    (value: string) => {
+      const next = value.trim()
+      if (next === savedRef.current) return
+
+      queueRef.current = queueRef.current.then(() =>
+        mutateAsync(next).catch(() => undefined)
+      )
+    },
+    [mutateAsync]
+  )
+
+  // Jeda 800 ms setelah berhenti mengetik.
+  useEffect(() => {
+    if (draft.trim() === savedRef.current) return
+
+    const timer = window.setTimeout(() => flush(draft), 800)
+    return () => window.clearTimeout(timer)
+  }, [draft, flush])
+
+  return (
+    <div className='space-y-1'>
+      <Textarea
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => flush(draft)}
+        onKeyDown={(event) => {
+          // Esc menutup drawer; simpan dulu sebelum ketikan terakhir hilang.
+          if (event.key === 'Escape') flush(draft)
+        }}
+        placeholder='Tambah catatan...'
+        className='min-h-[72px] resize-none text-sm'
+      />
+
+      {isPending && (
+        <p className='text-xs text-muted-foreground'>Menyimpan...</p>
+      )}
+    </div>
+  )
+}
+
 export function ActivityDetailDrawer({
   open,
   onOpenChange,
@@ -80,6 +170,7 @@ export function ActivityDetailDrawer({
   onEdit,
   onDelete,
   onDuplicate,
+  onNotesSaved,
 }: ActivityDetailDrawerProps) {
   const { data: teams = [] } = useQuery({
     queryKey: ['teams', 'options'],
@@ -159,6 +250,14 @@ export function ActivityDetailDrawer({
                   sampai {formatDateLabel(activity.end_date)}
                 </span>
               )}
+            </DetailRow>
+
+            <DetailRow icon={StickyNote} label='Catatan'>
+              <NotesEditor
+                key={activity.id}
+                activity={activity}
+                onSaved={onNotesSaved}
+              />
             </DetailRow>
 
             {time && (
