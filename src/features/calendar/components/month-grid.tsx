@@ -326,8 +326,8 @@ export function MonthGrid({
                                 <span
                                   className={cn(
                                     'min-w-0 flex-1 truncate',
-                                    activity.is_done &&
-                                      'text-muted-foreground line-through'
+                                    // Status cukup dibedakan lewat warna titik.
+                                    activity.is_done && 'text-muted-foreground'
                                   )}
                                 >
                                   {activity.description}
