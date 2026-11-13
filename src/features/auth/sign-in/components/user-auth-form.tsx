@@ -130,9 +130,12 @@ export function UserAuthForm({
             htmlFor='remember-me'
             className='text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
           >
-            Remember me
+            Remember me (30 days)
           </label>
         </div>
+        <p className='text-xs text-muted-foreground'>
+          Without it, the session ends in 1 day or when the tab is closed.
+        </p>
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
           Sign in

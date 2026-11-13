@@ -9,6 +9,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const REMEMBER_ME_KEY = 'rapibuol_remember_me'
 
+/** Apakah sesi terakhir diminta disimpan permanen (lintas tutup browser). */
+export const hasRememberMeFlag = () =>
+  localStorage.getItem(REMEMBER_ME_KEY) === 'true'
+
 class RememberMeStorage {
   private getStorage(): Storage {
     const flag = localStorage.getItem(REMEMBER_ME_KEY)
