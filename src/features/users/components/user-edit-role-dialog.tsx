@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -45,8 +45,6 @@ export function UserEditRoleDialog({
   const { updateUserRole, updateUserTeams } = useUsers()
   const { fetchUsers } = useUsersDialog()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedTeams, setSelectedTeams] = useState<number[]>([])
-  const [selectedRoles, setSelectedRoles] = useState<number[]>([])
   const [isAddingTeam, setIsAddingTeam] = useState(false)
   const [isAddingRole, setIsAddingRole] = useState(false)
 
@@ -58,13 +56,16 @@ export function UserEditRoleDialog({
     },
   })
 
+  const selectedTeams =
+    useWatch({ control: form.control, name: 'teamIds' }) ?? []
+  const selectedRoles =
+    useWatch({ control: form.control, name: 'roleIds' }) ?? []
+
   useEffect(() => {
     if (open && user) {
       const currentTeamIds = user.teams?.map((t) => t.id) || []
       const currentRoleIds = user.roles?.map((r) => r.id) || []
 
-      setSelectedTeams(currentTeamIds)
-      setSelectedRoles(currentRoleIds)
       form.reset({
         roleIds: currentRoleIds,
         teamIds: currentTeamIds,
@@ -82,27 +83,23 @@ export function UserEditRoleDialog({
 
   const handleAddTeam = (teamId: number) => {
     const newTeams = [...selectedTeams, teamId]
-    setSelectedTeams(newTeams)
     form.setValue('teamIds', newTeams)
     setIsAddingTeam(false)
   }
 
   const handleRemoveTeam = (teamId: number) => {
     const newTeams = selectedTeams.filter((id) => id !== teamId)
-    setSelectedTeams(newTeams)
     form.setValue('teamIds', newTeams)
   }
 
   const handleAddRole = (roleId: number) => {
     const newRoles = [...selectedRoles, roleId]
-    setSelectedRoles(newRoles)
     form.setValue('roleIds', newRoles)
     setIsAddingRole(false)
   }
 
   const handleRemoveRole = (roleId: number) => {
     const newRoles = selectedRoles.filter((id) => id !== roleId)
-    setSelectedRoles(newRoles)
     form.setValue('roleIds', newRoles)
   }
 

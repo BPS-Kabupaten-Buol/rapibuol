@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { type ReportDocInput } from './build-report-docx'
+import type { ReportDocInput } from './build-report-docx'
 
 const HEADERS = [
   'No',
