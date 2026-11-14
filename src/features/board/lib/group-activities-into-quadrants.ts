@@ -1,6 +1,6 @@
-import {
-  type Activity,
-  type ActivityQuadrant,
+import type {
+  Activity,
+  ActivityQuadrant,
 } from '@/features/activities/data/schema'
 
 export type BoardQuadrant = {
@@ -30,8 +30,15 @@ export type BoardGrouping = {
   done: Activity[]
 }
 
-function sortActivities(activities: Activity[]): void {
+function sortActivities(
+  activities: Activity[],
+  order?: ReadonlyMap<number, number>
+): void {
   activities.sort((a, b) => {
+    const aPosition = order?.get(a.id) ?? Infinity
+    const bPosition = order?.get(b.id) ?? Infinity
+    if (aPosition !== bPosition) return aPosition - bPosition
+
     const byDate = a.date.localeCompare(b.date)
     if (byDate !== 0) return byDate
 
@@ -46,8 +53,10 @@ function sortActivities(activities: Activity[]): void {
  * Aktivitas tanpa kuadran (baris lama) masuk DO FIRST.
  */
 export function groupActivitiesIntoQuadrants(
-  activities: Activity[]
+  activities: Activity[],
+  cardOrder: readonly number[] = []
 ): BoardGrouping {
+  const order = new Map(cardOrder.map((id, index) => [id, index]))
   const columns: BoardColumn[] = BOARD_QUADRANTS.map((quadrant) => ({
     ...quadrant,
     activities: [],
@@ -69,7 +78,7 @@ export function groupActivitiesIntoQuadrants(
     column?.activities.push(activity)
   }
 
-  for (const column of columns) sortActivities(column.activities)
+  for (const column of columns) sortActivities(column.activities, order)
   // Yang paling baru di atas pada bagian Selesai.
   sortActivities(done)
   done.reverse()

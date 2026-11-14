@@ -1,8 +1,18 @@
 import { useMemo, useState, type DragEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
+import { useQuery } from '@tanstack/react-query'
 import { id as localeId } from 'date-fns/locale'
-import { CalendarDays, CheckCheck, ChevronDown, Clock, Plus } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  CalendarDays,
+  CheckCheck,
+  ChevronDown,
+  Clock,
+  Ellipsis,
+  Plus,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/auth-provider'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +22,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -21,18 +39,21 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { getActivities } from '@/features/activities/api/activities'
 import { ActivitiesDialogs } from '@/features/activities/components/activities-dialogs'
-import { ActivityDoneToggle } from '@/features/activities/components/activity-done-toggle'
+import { ActivitiesPrimaryButtons } from '@/features/activities/components/activities-primary-buttons'
 import {
   ActivitiesProvider,
   useActivities,
 } from '@/features/activities/components/activities-provider'
-import { ActivitiesPrimaryButtons } from '@/features/activities/components/activities-primary-buttons'
-import { type Activity } from '@/features/activities/data/schema'
+import { ActivityDoneToggle } from '@/features/activities/components/activity-done-toggle'
+import {
+  type Activity,
+  type ActivityQuadrant,
+} from '@/features/activities/data/schema'
 import { useUpdateBoardCard } from './hooks/use-update-board-card'
+import { moveBoardCard, parseBoardCardOrder } from './lib/card-order'
 import {
   BOARD_QUADRANTS,
   groupActivitiesIntoQuadrants,
-  type BoardColumn,
   type BoardQuadrant,
 } from './lib/group-activities-into-quadrants'
 
@@ -51,22 +72,33 @@ function BoardCard({
   isDragging,
   onDragStart,
   onDragEnd,
+  onDragOver,
+  disabled,
+  onMoveUp,
+  onMoveDown,
+  onMoveTo,
 }: {
   activity: Activity
   isDragging: boolean
   onDragStart: (event: DragEvent<HTMLDivElement>) => void
   onDragEnd: () => void
+  onDragOver?: (event: DragEvent<HTMLDivElement>) => void
+  disabled: boolean
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  onMoveTo: (quadrant: ActivityQuadrant) => void
 }) {
   const { setDetailActivity } = useActivities()
 
   return (
     <div
-      draggable
+      draggable={!disabled}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
       className={cn(
         'cursor-grab rounded-lg border bg-card p-3 shadow-sm transition active:cursor-grabbing',
-        'focus-within:ring-2 focus-within:ring-ring/40',
+        'focus-within:ring-2 focus-within:ring-ring',
         isDragging && 'opacity-40'
       )}
     >
@@ -102,6 +134,42 @@ function BoardCard({
             )}
           </div>
         </button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='size-11 shrink-0'
+              disabled={disabled}
+              aria-label={`Pindahkan aktivitas: ${activity.description}`}
+            >
+              <Ellipsis className='size-4' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem disabled={!onMoveUp} onClick={onMoveUp}>
+              <ArrowUp /> Geser ke atas
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={!onMoveDown} onClick={onMoveDown}>
+              <ArrowDown /> Geser ke bawah
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Pindahkan ke</DropdownMenuLabel>
+            {BOARD_QUADRANTS.map((quadrant) => (
+              <DropdownMenuItem
+                key={quadrant.id}
+                disabled={
+                  !activity.is_done &&
+                  (activity.quadrant ?? 'do-first') === quadrant.id
+                }
+                onClick={() => onMoveTo(quadrant.id)}
+              >
+                {quadrant.title}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )
@@ -112,7 +180,20 @@ function BoardContent() {
   const { setOpen, setDefaultDate, setDefaultQuadrant } = useActivities()
   const updateCard = useUpdateBoardCard()
   const [dragging, setDragging] = useState<Activity | null>(null)
-  const [hoverTarget, setHoverTarget] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{
+    quadrant: ActivityQuadrant
+    beforeId: number | null
+  } | null>(null)
+  const orderKey = user?.id ? `board-card-order:${user.id}` : null
+  const [cardOrder, setCardOrder] = useState<number[]>(() => {
+    try {
+      return parseBoardCardOrder(
+        orderKey ? localStorage.getItem(orderKey) : null
+      )
+    } catch {
+      return []
+    }
+  })
   const [showDone, setShowDone] = useState(false)
 
   const { data: activities = [], isLoading } = useQuery({
@@ -122,63 +203,150 @@ function BoardContent() {
   })
 
   const { columns, done } = useMemo(
-    () => groupActivitiesIntoQuadrants(activities),
-    [activities]
+    () => groupActivitiesIntoQuadrants(activities, cardOrder),
+    [activities, cardOrder]
   )
 
   const resetDrag = () => {
     setDragging(null)
-    setHoverTarget(null)
+    setDropTarget(null)
+  }
+
+  const moveCard = async (
+    activity: Activity,
+    quadrant: ActivityQuadrant,
+    beforeId: number | null
+  ) => {
+    if (updateCard.isPending) return
+
+    const previousOrder = cardOrder
+    const changesColumn =
+      activity.is_done || (activity.quadrant ?? 'do-first') !== quadrant
+    const nextOrder = moveBoardCard(
+      columns.flatMap((column) => column.activities.map((item) => item.id)),
+      activity.id,
+      beforeId
+    )
+    setCardOrder(nextOrder)
+
+    try {
+      if (changesColumn) {
+        await updateCard.mutateAsync({
+          activity,
+          quadrant,
+          ...(activity.is_done ? { isDone: false } : {}),
+        })
+      }
+    } catch {
+      setCardOrder(previousOrder)
+      return
+    }
+
+    try {
+      if (orderKey) localStorage.setItem(orderKey, JSON.stringify(nextOrder))
+    } catch {
+      toast.error(
+        'Urutan hanya tersimpan sementara karena penyimpanan browser tidak tersedia.'
+      )
+      return
+    }
+    if (!changesColumn) toast.success('Urutan aktivitas diperbarui.')
   }
 
   const dropOnQuadrant =
-    (column: BoardColumn) => (event: DragEvent<HTMLElement>) => {
+    (quadrant: BoardQuadrant) => (event: DragEvent<HTMLElement>) => {
       event.preventDefault()
 
       const activity = dragging
+      const beforeId =
+        dropTarget?.quadrant === quadrant.id ? dropTarget.beforeId : null
       resetDrag()
-      if (!activity) return
+      if (!activity || beforeId === activity.id) return
 
-      if (activity.is_done) {
-        updateCard.mutate({ activity, quadrant: column.id, isDone: false })
-        return
-      }
-
-      if ((activity.quadrant ?? 'do-first') !== column.id) {
-        updateCard.mutate({ activity, quadrant: column.id })
-      }
+      void moveCard(activity, quadrant.id, beforeId)
     }
 
-  const renderCard = (activity: Activity) => (
-    <BoardCard
-      key={activity.id}
-      activity={activity}
-      isDragging={dragging?.id === activity.id}
-      onDragStart={(event) => {
-        setDragging(activity)
-        event.dataTransfer.effectAllowed = 'move'
-        try {
-          event.dataTransfer.setData('text/plain', String(activity.id))
-        } catch {
-          /* sebagian browser membatasi dataTransfer */
+  const renderCard = (
+    activity: Activity,
+    quadrant?: BoardQuadrant,
+    list: Activity[] = []
+  ) => {
+    const index = list.findIndex((item) => item.id === activity.id)
+    return (
+      <BoardCard
+        key={activity.id}
+        activity={activity}
+        isDragging={dragging?.id === activity.id}
+        disabled={updateCard.isPending}
+        onMoveUp={
+          quadrant && index > 0
+            ? () => void moveCard(activity, quadrant.id, list[index - 1].id)
+            : undefined
         }
-      }}
-      onDragEnd={resetDrag}
-    />
-  )
+        onMoveDown={
+          quadrant && index >= 0 && index < list.length - 1
+            ? () =>
+                void moveCard(
+                  activity,
+                  quadrant.id,
+                  list[index + 2]?.id ?? null
+                )
+            : undefined
+        }
+        onMoveTo={(target) => void moveCard(activity, target, null)}
+        onDragOver={
+          quadrant
+            ? (event) => {
+                if (!dragging || updateCard.isPending) return
+                event.preventDefault()
+                event.stopPropagation()
+                event.dataTransfer.dropEffect = 'move'
+                if (dragging.id === activity.id) {
+                  setDropTarget({
+                    quadrant: quadrant.id,
+                    beforeId: activity.id,
+                  })
+                  return
+                }
+                const bounds = event.currentTarget.getBoundingClientRect()
+                const remaining = list.filter((item) => item.id !== dragging.id)
+                const targetIndex = remaining.findIndex(
+                  (item) => item.id === activity.id
+                )
+                const beforeId =
+                  event.clientY < bounds.top + bounds.height / 2
+                    ? activity.id
+                    : (remaining[targetIndex + 1]?.id ?? null)
+                setDropTarget({ quadrant: quadrant.id, beforeId })
+              }
+            : undefined
+        }
+        onDragStart={(event) => {
+          setDragging(activity)
+          event.dataTransfer.effectAllowed = 'move'
+          try {
+            event.dataTransfer.setData('text/plain', String(activity.id))
+          } catch {
+            /* sebagian browser membatasi dataTransfer */
+          }
+        }}
+        onDragEnd={resetDrag}
+      />
+    )
+  }
 
   const quadrantProps = (quadrant: BoardQuadrant) => ({
     onDragOver: (event: DragEvent<HTMLElement>) => {
-      if (!dragging) return
+      if (!dragging || updateCard.isPending) return
 
       event.preventDefault()
       event.dataTransfer.dropEffect = 'move'
-      if (hoverTarget !== quadrant.id) setHoverTarget(quadrant.id)
+      setDropTarget({ quadrant: quadrant.id, beforeId: null })
     },
     onDragLeave: (event: DragEvent<HTMLElement>) => {
       const next = event.relatedTarget as Node | null
       if (next && event.currentTarget.contains(next)) return
-      if (hoverTarget === quadrant.id) setHoverTarget(null)
+      if (dropTarget?.quadrant === quadrant.id) setDropTarget(null)
     },
   })
 
@@ -207,18 +375,18 @@ function BoardContent() {
             {BOARD_QUADRANTS.map((quadrant) => {
               const column = columns.find((item) => item.id === quadrant.id)
               const list = column?.activities ?? []
-              const isTarget = dragging !== null && hoverTarget === quadrant.id
+              const isTarget =
+                dragging !== null && dropTarget?.quadrant === quadrant.id
 
               return (
                 <section
                   key={quadrant.id}
                   {...quadrantProps(quadrant)}
-                  onDrop={dropOnQuadrant(
-                    column ?? { ...quadrant, activities: [] }
-                  )}
+                  onDrop={dropOnQuadrant(quadrant)}
                   className={cn(
                     'flex w-[280px] shrink-0 flex-col gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 transition-colors',
-                    isTarget && 'border-primary/40 bg-primary/5 ring-2 ring-primary/30'
+                    isTarget &&
+                      'border-primary/40 bg-primary/5 ring-2 ring-primary/30'
                   )}
                 >
                   <header>
@@ -239,7 +407,23 @@ function BoardContent() {
                   </header>
 
                   <div className='flex min-h-16 flex-col gap-2'>
-                    {list.map(renderCard)}
+                    {list.map((activity) => (
+                      <div key={activity.id} className='relative'>
+                        {isTarget && dropTarget.beforeId === activity.id && (
+                          <div
+                            aria-hidden='true'
+                            className='absolute inset-x-0 -top-1.5 h-1 rounded bg-primary'
+                          />
+                        )}
+                        {renderCard(activity, quadrant, list)}
+                      </div>
+                    ))}
+                    {isTarget && dropTarget.beforeId === null && (
+                      <div
+                        aria-hidden='true'
+                        className='h-1 rounded bg-primary'
+                      />
+                    )}
 
                     {list.length === 0 && (
                       <div className='flex h-16 items-center justify-center rounded-lg border border-dashed text-[11px] text-muted-foreground'>
@@ -298,7 +482,7 @@ function BoardContent() {
                 </p>
               ) : (
                 <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-3'>
-                  {done.map(renderCard)}
+                  {done.map((activity) => renderCard(activity))}
                 </div>
               )}
             </div>

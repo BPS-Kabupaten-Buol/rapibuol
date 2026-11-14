@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:board": "node --test src/features/board/lib/card-order.test.ts",
     "preview": "vite preview",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
