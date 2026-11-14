@@ -21,7 +21,7 @@ Use strict TypeScript and functional React components. Prettier enforces two-spa
 
 ## Testing Guidelines
 
-Board ordering uses Node.js's built-in test runner: run `pnpm test:board` with Node.js 22.18 or newer. Colocate tests as `*.test.ts` or `*.test.tsx` beside the code. Before opening a pull request, run the relevant tests, `pnpm lint`, `pnpm format:check`, and `pnpm build`, then manually exercise the changed flow in both relevant responsive layouts and themes. Add commands for new test suites to `package.json`.
+Run `pnpm test` with Node.js 22.18 or newer for Board ordering, XLSX reports, DOCX compatibility, and role-form validation; `pnpm test:board` runs only Board tests. Colocate tests as `*.test.ts` or `*.test.tsx` beside the code. Before opening a pull request, run the relevant tests, `pnpm lint`, `pnpm format:check`, and `pnpm build`, then manually exercise the changed flow in both relevant responsive layouts and themes. Add commands for new test suites to `package.json`.
 
 ## Security & Configuration
 

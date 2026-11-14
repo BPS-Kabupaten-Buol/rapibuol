@@ -16,6 +16,19 @@ Supabase.
 - Impor aktivitas dari DOCX dan Google Tasks serta ekspor ke kalender.
 - Dukungan PWA, mode offline, tema terang/gelap, dan tata letak responsif.
 
+## Identitas Visual
+
+Logo RapiBuol menggabungkan huruf **R** dengan kaki diagonal berbentuk centang.
+R merujuk nama aplikasi dan rekap aktivitas; centang melambangkan kegiatan yang
+dituntaskan. Bentuk tegas dan sederhana mewakili pencatatan yang tertib.
+
+Navy (`#061f33`) memberi kesan tenang dan tepercaya. Hijau mint (`#2bd48a`)
+menandai progres; badan R dan kaki centangnya memakai warna serta ketebalan yang
+senada agar terbaca sebagai satu bentuk. Identitas yang sama dipakai pada logo
+aplikasi, favicon, dan ikon PWA. Sumber vektor ada di
+`public/images/pwa-512x512.svg`; versi maskable memiliki latar penuh dan simbol
+di dalam area aman pemotongan.
+
 ## Tech Stack
 
 | Teknologi             | Fungsi                         |
@@ -112,14 +125,16 @@ pnpm build
 | `pnpm dev`          | Dev server                                               |
 | `pnpm build`        | Build production                                         |
 | `pnpm lint`         | ESLint check                                             |
+| `pnpm test`         | Uji regresi Board, laporan XLSX, DOCX, dan form peran    |
 | `pnpm test:board`   | Uji urutan kartu Board (Node.js 22.18+)                  |
 | `pnpm format:check` | Periksa format tanpa mengubah berkas                     |
 | `pnpm format`       | Prettier format                                          |
 | `pnpm preview`      | Preview build                                            |
 | `pnpm knip`         | Cari berkas, ekspor, dan dependency yang tidak digunakan |
 
-Pengujian urutan kartu Board memakai test runner bawaan Node.js melalui
-`pnpm test:board`. Sebelum membuat pull request, jalankan juga `pnpm lint`,
+Pengujian memakai test runner bawaan Node.js (22.18+). Jalankan `pnpm test`
+untuk seluruh tes atau `pnpm test:board` untuk urutan kartu. Sebelum membuat
+pull request, jalankan juga `pnpm lint`,
 `pnpm format:check`, dan `pnpm build`, lalu uji alur yang berubah secara manual
 pada tampilan dan tema yang relevan.
 
@@ -136,6 +151,7 @@ Dokumentasi lengkap ada di folder `docs/`:
 - [`docs/DATABASE.md`](./docs/DATABASE.md): skema database
 - [`docs/IMPLEMENTATION_CHECKLIST.md`](./docs/IMPLEMENTATION_CHECKLIST.md): checklist dan troubleshooting
 - [`AGENTS.md`](./AGENTS.md): panduan kontribusi ringkas
+- [`docs/DEPENDENCY_SECURITY.md`](./docs/DEPENDENCY_SECURITY.md): hasil audit dan batas validasi pembaruan dependensi
 
 ## License
 
