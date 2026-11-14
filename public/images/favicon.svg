@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
-  <line x1="8" y1="10" x2="8" y2="14"/>
-  <line x1="12" y1="10" x2="12" y2="12"/>
-  <line x1="16" y1="10" x2="16" y2="16"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
+  <title>RapiBuol</title>
+  <rect width="512" height="512" rx="112" fill="#061f33"/>
+  <path fill="#2bd48a" fill-rule="evenodd" d="M116 384V128h128c70 0 108 28 108 84s-38 88-108 88h-72v84ZM172 180v68h70c34 0 54-12 54-34s-20-34-54-34Z"/>
+  <path d="m236 276 68 96 96-96" fill="none" stroke="#2bd48a" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

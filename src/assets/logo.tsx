@@ -1,9 +1,12 @@
-import { FolderKanban } from 'lucide-react'
-
 export function Logo() {
   return (
-    <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
-      <FolderKanban className='size-4' />
-    </div>
+    <img
+      src='/images/favicon.svg'
+      alt=''
+      aria-hidden='true'
+      width={32}
+      height={32}
+      className='size-8 shrink-0 rounded-lg'
+    />
   )
 }

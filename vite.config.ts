@@ -32,8 +32,8 @@ export default defineConfig({
         short_name: 'RapiBuol',
         description:
           'Aplikasi Rekap Aktivitas Pegawai Internal BPS Kabupaten Buol',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        theme_color: '#087a5b',
+        background_color: '#061f33',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -48,15 +48,9 @@ export default defineConfig({
             type: 'image/png',
           },
           {
-            src: 'images/pwa-512x512.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any',
-          },
-          {
-            src: 'images/pwa-512x512.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: 'images/pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'maskable',
           },
         ],
@@ -132,7 +126,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 })
